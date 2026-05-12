@@ -1,0 +1,6 @@
+<span class="badge badge-estado badge-{{ asistencia.estado }}"
+      hx-post="{% url 'core:asistencia_toggle' asistencia.pk %}"
+      hx-target="#asist-{{ asistencia.pk }}"
+      hx-swap="innerHTML">
+    {{ asistencia.get_estado_display }}
+</span>

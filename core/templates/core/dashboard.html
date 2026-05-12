@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-grid-1x2-fill me-2"></i>Dashboard</h1>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex justify-content-between align-items-center">
+            <div>
+                <div class="number">{{ total_estudiantes }}</div>
+                <div class="label">Estudiantes</div>
+            </div>
+            <i class="bi bi-people-fill icon text-primary"></i>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex justify-content-between align-items-center">
+            <div>
+                <div class="number">{{ total_profesores }}</div>
+                <div class="label">Profesores</div>
+            </div>
+            <i class="bi bi-person-badge-fill icon text-success"></i>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex justify-content-between align-items-center">
+            <div>
+                <div class="number">{{ total_materias }}</div>
+                <div class="label">Materias</div>
+            </div>
+            <i class="bi bi-book-fill icon text-warning"></i>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex justify-content-between align-items-center">
+            <div>
+                <div class="number">{{ total_observaciones }}</div>
+                <div class="label">Observaciones</div>
+            </div>
+            <i class="bi bi-chat-dots-fill icon text-info"></i>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Estudiantes por grado -->
+    <div class="col-lg-6">
+        <div class="table-dark-custom">
+            <div class="p-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid var(--border)">
+                <h6 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Estudiantes por Grado</h6>
+            </div>
+            <table class="table table-dark mb-0">
+                <thead>
+                    <tr><th>Grado</th><th class="text-end">Cantidad</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in estudiantes_por_grado %}
+                    <tr>
+                        <td>{{ item.grado }}</td>
+                        <td class="text-end fw-bold">{{ item.total }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="text-center text-muted py-4">Sin datos</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Últimas observaciones -->
+    <div class="col-lg-6">
+        <div class="table-dark-custom">
+            <div class="p-3" style="border-bottom: 1px solid var(--border)">
+                <h6 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Últimas Observaciones</h6>
+            </div>
+            <div class="p-3">
+                {% for obs in ultimas_observaciones %}
+                <div class="obs-card tipo-{{ obs.tipo }}">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ obs.estudiante }}</strong>
+                        <span class="badge bg-secondary">{{ obs.get_tipo_display }}</span>
+                    </div>
+                    <p class="mb-1 mt-1" style="font-size:.9rem">{{ obs.contenido|truncatewords:20 }}</p>
+                    <div class="obs-meta">{{ obs.fecha|date:"d/m/Y H:i" }}</div>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="bi bi-chat-dots d-block"></i>
+                    <p>No hay observaciones registradas</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

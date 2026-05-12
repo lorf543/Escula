@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Materias{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-book-fill me-2"></i>Materias</h1>
+    <button class="btn btn-accent"
+            hx-get="{% url 'core:materia_create' %}"
+            hx-target="#formModalContent">
+        <i class="bi bi-plus-lg me-1"></i>Nueva Materia
+    </button>
+</div>
+
+<div class="mb-3">
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text"
+               name="q"
+               placeholder="Buscar materias..."
+               value="{{ q }}"
+               hx-get="{% url 'core:materia_list' %}"
+               hx-trigger="keyup changed delay:300ms"
+               hx-target="#materias-table">
+    </div>
+</div>
+
+<div id="materias-table"
+     hx-get="{% url 'core:materia_list' %}"
+     hx-trigger="materiaChanged from:body"
+     hx-target="this">
+    {% include "core/materias/table.html" %}
+</div>
+{% endblock %}

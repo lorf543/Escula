@@ -1,0 +1,2 @@
+django>=5.2
+django-htmx>=1.21

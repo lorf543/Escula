@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Estudiantes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-people-fill me-2"></i>Estudiantes</h1>
+    <button class="btn btn-accent"
+            hx-get="{% url 'core:estudiante_create' %}"
+            hx-target="#formModalContent">
+        <i class="bi bi-plus-lg me-1"></i>Nuevo Estudiante
+    </button>
+</div>
+
+<div class="d-flex gap-3 mb-3 flex-wrap">
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text"
+               id="search-input"
+               name="q"
+               placeholder="Buscar estudiantes..."
+               value="{{ q }}"
+               hx-get="{% url 'core:estudiante_list' %}"
+               hx-trigger="keyup changed delay:300ms"
+               hx-target="#estudiantes-table"
+               hx-include="#grado-filter">
+    </div>
+    <select id="grado-filter"
+            name="grado"
+            class="form-select bg-dark text-light border-secondary"
+            style="width:auto"
+            hx-get="{% url 'core:estudiante_list' %}"
+            hx-trigger="change"
+            hx-target="#estudiantes-table"
+            hx-include="#search-input">
+        <option value="">Todos los grados</option>
+        <option value="1RO" {% if grado == "1RO" %}selected{% endif %}>1ro Secundaria</option>
+        <option value="2DO" {% if grado == "2DO" %}selected{% endif %}>2do Secundaria</option>
+        <option value="3RO" {% if grado == "3RO" %}selected{% endif %}>3ro Secundaria</option>
+        <option value="4TO" {% if grado == "4TO" %}selected{% endif %}>4to Secundaria</option>
+        <option value="5TO" {% if grado == "5TO" %}selected{% endif %}>5to Secundaria</option>
+        <option value="6TO" {% if grado == "6TO" %}selected{% endif %}>6to Secundaria</option>
+    </select>
+</div>
+
+<div id="estudiantes-table"
+     hx-get="{% url 'core:estudiante_list' %}"
+     hx-trigger="estudianteChanged from:body"
+     hx-target="this">
+    {% include "core/estudiantes/table.html" %}
+</div>
+{% endblock %}

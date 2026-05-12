@@ -1,0 +1,17 @@
+<div class="modal-header">
+    <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Eliminar Materia</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form hx-post="{% url 'core:materia_delete' object.pk %}" hx-target="#formModalContent">
+    {% csrf_token %}
+    <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar la materia <strong>{{ object }}</strong>?</p>
+        <p class="text-muted small">Esta acción no se puede deshacer.</p>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash me-1"></i>Eliminar
+        </button>
+    </div>
+</form>

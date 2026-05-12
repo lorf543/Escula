@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{{ profesor.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{% url 'core:profesor_list' %}" class="text-muted text-decoration-none small">
+            <i class="bi bi-arrow-left me-1"></i>Profesores
+        </a>
+        <h1 class="mt-1"><i class="bi bi-person-badge-fill me-2"></i>{{ profesor.nombre_completo }}</h1>
+    </div>
+    <button class="btn btn-accent"
+            hx-get="{% url 'core:profesor_update' profesor.pk %}"
+            hx-target="#formModalContent">
+        <i class="bi bi-pencil me-1"></i>Editar
+    </button>
+</div>
+
+<div class="info-grid mb-4">
+    <div class="info-item">
+        <div class="info-label">Cédula</div>
+        <div class="info-value">{{ profesor.cedula|default:"No registrada" }}</div>
+    </div>
+    <div class="info-item">
+        <div class="info-label">Teléfono</div>
+        <div class="info-value">{{ profesor.telefono|default:"No registrado" }}</div>
+    </div>
+    <div class="info-item">
+        <div class="info-label">Email</div>
+        <div class="info-value">{{ profesor.email|default:"No registrado" }}</div>
+    </div>
+    <div class="info-item">
+        <div class="info-label">Estudiantes asignados</div>
+        <div class="info-value">{{ profesor.estudiantes.count }}</div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="table-dark-custom">
+            <div class="p-3" style="border-bottom:1px solid var(--border)">
+                <h6 class="mb-0"><i class="bi bi-book me-2"></i>Materias</h6>
+            </div>
+            <div class="p-3">
+                {% for materia in profesor.materias.all %}
+                <span class="badge bg-secondary me-1 mb-1 p-2">{{ materia }}</span>
+                {% empty %}
+                <p class="text-muted mb-0">Sin materias asignadas</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="table-dark-custom">
+            <div class="p-3" style="border-bottom:1px solid var(--border)">
+                <h6 class="mb-0"><i class="bi bi-people me-2"></i>Estudiantes</h6>
+            </div>
+            <table class="table table-dark mb-0">
+                <tbody>
+                    {% for est in profesor.estudiantes.all %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'core:estudiante_detail' est.pk %}" class="text-decoration-none text-light">
+                                {{ est.nombre_completo }}
+                            </a>
+                        </td>
+                        <td><span class="badge bg-secondary">{{ est.grado }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td class="text-muted text-center py-3">Sin estudiantes asignados</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

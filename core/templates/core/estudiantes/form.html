@@ -1,0 +1,45 @@
+<div class="modal-header">
+    <h5 class="modal-title"><i class="bi bi-people me-2"></i>{{ title }}</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form {% if form.instance.pk %}
+        hx-post="{% url 'core:estudiante_update' form.instance.pk %}"
+      {% else %}
+        hx-post="{% url 'core:estudiante_create' %}"
+      {% endif %}
+      hx-target="#formModalContent"
+      hx-swap="innerHTML">
+    {% csrf_token %}
+    <div class="modal-body">
+        <div class="row">
+            {% for field in form %}
+            <div class="{% if field.name == 'profesores' %}col-12{% else %}col-md-6{% endif %} mb-3">
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {% if "CheckboxSelectMultiple" in field.field.widget.__class__.__name__ %}
+                <div class="d-flex flex-wrap gap-2 p-2 rounded" style="background:var(--surface-3);border:1px solid var(--border)">
+                    {% for choice in field %}
+                    <div class="form-check">
+                        {{ choice.tag }}
+                        <label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
+                    </div>
+                    {% empty %}
+                    <span class="text-muted small">Primero registra profesores</span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                {{ field }}
+                {% endif %}
+                {% if field.errors %}
+                <div class="text-danger small mt-1">{{ field.errors.0 }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-accent">
+            <i class="bi bi-check-lg me-1"></i>Guardar
+        </button>
+    </div>
+</form>

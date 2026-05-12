@@ -1,0 +1,75 @@
+{% if sin_grado %}
+<div class="empty-state">
+    <i class="bi bi-arrow-up-circle d-block" style="font-size:3rem;opacity:.3"></i>
+    <p class="mt-2">Selecciona un curso para pasar asistencia</p>
+</div>
+{% else %}
+
+<!-- Resumen del dia -->
+{% if resumen %}
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+            <div class="number" style="color:var(--success)">{{ resumen.presentes }}</div>
+            <div class="label">Presentes</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+            <div class="number" style="color:var(--danger)">{{ resumen.ausentes }}</div>
+            <div class="label">Ausentes</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+            <div class="number" style="color:var(--warning)">{{ resumen.tardanzas }}</div>
+            <div class="label">Tardanzas</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+            <div class="number" style="color:#457b9d">{{ resumen.excusas }}</div>
+            <div class="label">Excusas</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="table-dark-custom">
+    <table class="table table-dark">
+        <thead>
+            <tr>
+                <th style="width:50px">#</th>
+                <th>Estudiante</th>
+                <th class="text-center" style="width:120px">Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in registros %}
+            <tr>
+                <td class="text-muted">{{ forloop.counter }}</td>
+                <td>
+                    <a href="{% url 'core:estudiante_detail' r.estudiante.pk %}" class="text-decoration-none text-light">
+                        {{ r.estudiante.apellido }}, {{ r.estudiante.nombre }}
+                    </a>
+                </td>
+                <td class="text-center" id="asist-{{ r.asistencia.pk }}">
+                    {% with asistencia=r.asistencia %}
+                    {% include "core/asistencia/badge.html" %}
+                    {% endwith %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">
+                    <div class="empty-state">
+                        <i class="bi bi-people d-block"></i>
+                        <p>No hay estudiantes en este curso</p>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}

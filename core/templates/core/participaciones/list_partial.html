@@ -1,0 +1,42 @@
+<!-- Resumen por materia -->
+{% if puntos_por_materia %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+    {% for pm in puntos_por_materia %}
+    <div class="p-2 rounded d-flex align-items-center gap-2" style="background:var(--surface-3);border:1px solid var(--border);min-width:160px">
+        <span class="fw-semibold" style="font-size:.85rem">{{ pm.materia.nombre }}</span>
+        <span class="badge bg-success" title="Positivos">+{{ pm.positivos }}</span>
+        <span class="badge bg-danger" title="Negativos">-{{ pm.negativos }}</span>
+        <span class="fw-bold {% if pm.balance > 0 %}text-success{% elif pm.balance < 0 %}text-danger{% else %}text-muted{% endif %}"
+              style="font-size:.9rem"
+              title="Balance">
+            = {{ pm.balance }}
+        </span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Lista de puntos -->
+{% for p in participaciones %}
+<div class="d-flex align-items-center gap-2 py-2 px-3 mb-1 rounded" style="background:var(--surface-3);border-left:3px solid {% if p.tipo == 'POSITIVO' %}var(--success){% else %}var(--danger){% endif %}">
+    {% if p.tipo == "POSITIVO" %}
+    <span class="badge bg-success" style="font-size:.9rem;min-width:32px">+1</span>
+    {% else %}
+    <span class="badge bg-danger" style="font-size:.9rem;min-width:32px">-1</span>
+    {% endif %}
+    <span class="badge bg-secondary">{{ p.materia.nombre }}</span>
+    <span class="flex-grow-1" style="font-size:.9rem;color:var(--text)">{{ p.descripcion|default:"" }}</span>
+    <span class="text-muted" style="font-size:.75rem;white-space:nowrap">{{ p.fecha|date:"d/m/Y H:i" }}</span>
+    <button class="btn btn-sm btn-ghost text-danger p-0"
+            hx-get="{% url 'core:participacion_delete' p.pk %}"
+            hx-target="#formModalContent"
+            style="line-height:1">
+        <i class="bi bi-x-lg" style="font-size:.75rem"></i>
+    </button>
+</div>
+{% empty %}
+<div class="empty-state py-3">
+    <i class="bi bi-star d-block" style="font-size:2rem;opacity:.3"></i>
+    <p class="mb-0">No hay puntos de participación registrados</p>
+</div>
+{% endfor %}

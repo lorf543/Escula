@@ -1,0 +1,92 @@
+{% if sin_grado %}
+<div class="empty-state">
+    <i class="bi bi-arrow-up-circle d-block" style="font-size:3rem;opacity:.3"></i>
+    <p class="mt-2">Selecciona un curso para ver el historial</p>
+</div>
+{% else %}
+
+<div class="mb-3 d-flex justify-content-between align-items-center">
+    <div>
+        <h5 class="mb-0">
+            {{ grado_display }}
+            <span class="text-muted fw-normal">- {{ mes_display }} {{ anio }}</span>
+        </h5>
+        <small class="text-muted">{{ total_estudiantes }} estudiantes | {{ dias_lectivos|length }} dias lectivos</small>
+    </div>
+</div>
+
+<div class="table-dark-custom" style="overflow-x:auto">
+    <table class="table table-dark mb-0" style="font-size:.85rem">
+        <thead>
+            <tr>
+                <th style="position:sticky;left:0;z-index:2;background:var(--surface-3);min-width:40px">#</th>
+                <th style="position:sticky;left:40px;z-index:2;background:var(--surface-3);min-width:200px">Estudiante</th>
+                {% for dia in dias_lectivos %}
+                <th class="text-center" style="min-width:36px;padding:.4rem .2rem">
+                    <div style="font-size:.7rem;color:var(--text-muted)">
+                        {% if dia.weekday == 0 %}L{% elif dia.weekday == 1 %}M{% elif dia.weekday == 2 %}X{% elif dia.weekday == 3 %}J{% elif dia.weekday == 4 %}V{% endif %}
+                    </div>
+                    {{ dia.day }}
+                </th>
+                {% endfor %}
+                <th class="text-center" style="min-width:40px;background:var(--surface-3)">P</th>
+                <th class="text-center" style="min-width:40px;background:var(--surface-3)">A</th>
+                <th class="text-center" style="min-width:40px;background:var(--surface-3)">T</th>
+                <th class="text-center" style="min-width:40px;background:var(--surface-3)">E</th>
+                <th class="text-center" style="min-width:50px;background:var(--surface-3)">%</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fila in filas %}
+            <tr>
+                <td style="position:sticky;left:0;z-index:1;background:var(--surface-2)" class="text-muted">{{ forloop.counter }}</td>
+                <td style="position:sticky;left:40px;z-index:1;background:var(--surface-2);white-space:nowrap">
+                    <a href="{% url 'core:estudiante_detail' fila.estudiante.pk %}" class="text-decoration-none text-light">
+                        {{ fila.estudiante.apellido }}, {{ fila.estudiante.nombre }}
+                    </a>
+                </td>
+                {% for estado in fila.estados %}
+                <td class="text-center" style="padding:.4rem .2rem">
+                    {% if estado == "P" %}
+                    <span class="badge badge-estado badge-P" style="min-width:28px;padding:.2rem .3rem;font-size:.75rem">P</span>
+                    {% elif estado == "A" %}
+                    <span class="badge badge-estado badge-A" style="min-width:28px;padding:.2rem .3rem;font-size:.75rem">A</span>
+                    {% elif estado == "T" %}
+                    <span class="badge badge-estado badge-T" style="min-width:28px;padding:.2rem .3rem;font-size:.75rem">T</span>
+                    {% elif estado == "E" %}
+                    <span class="badge badge-estado badge-E" style="min-width:28px;padding:.2rem .3rem;font-size:.75rem">E</span>
+                    {% else %}
+                    <span style="color:var(--text-muted)">-</span>
+                    {% endif %}
+                </td>
+                {% endfor %}
+                <td class="text-center fw-bold" style="color:var(--success);background:var(--surface-3)">{{ fila.presentes }}</td>
+                <td class="text-center fw-bold" style="color:var(--danger);background:var(--surface-3)">{{ fila.ausentes }}</td>
+                <td class="text-center fw-bold" style="color:var(--warning);background:var(--surface-3)">{{ fila.tardanzas }}</td>
+                <td class="text-center fw-bold" style="color:#457b9d;background:var(--surface-3)">{{ fila.excusas }}</td>
+                <td class="text-center fw-bold" style="background:var(--surface-3)">
+                    {% if fila.pct >= 80 %}
+                    <span style="color:var(--success)">{{ fila.pct }}%</span>
+                    {% elif fila.pct >= 60 %}
+                    <span style="color:var(--warning)">{{ fila.pct }}%</span>
+                    {% elif fila.pct > 0 %}
+                    <span style="color:var(--danger)">{{ fila.pct }}%</span>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{{ dias_lectivos|length|add:7 }}">
+                    <div class="empty-state">
+                        <i class="bi bi-calendar-x d-block"></i>
+                        <p>No hay estudiantes en este curso</p>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}

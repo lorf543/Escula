@@ -1,0 +1,27 @@
+<div class="modal-header">
+    <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Eliminar Punto</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form hx-post="{% url 'core:participacion_delete' object.pk %}" hx-target="#formModalContent">
+    {% csrf_token %}
+    <div class="modal-body">
+        <p>¿Eliminar este punto de participación?</p>
+        <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:var(--surface-3)">
+            {% if object.tipo == "POSITIVO" %}
+            <span class="badge bg-success">+1</span>
+            {% else %}
+            <span class="badge bg-danger">-1</span>
+            {% endif %}
+            <span>{{ object.materia.nombre }}</span>
+            {% if object.descripcion %}
+            <span class="text-muted">- {{ object.descripcion }}</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash me-1"></i>Eliminar
+        </button>
+    </div>
+</form>

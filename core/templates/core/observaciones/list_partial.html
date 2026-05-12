@@ -1,0 +1,24 @@
+{% for obs in observaciones %}
+<div class="obs-card tipo-{{ obs.tipo }}">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <span class="badge bg-secondary me-1">{{ obs.get_tipo_display }}</span>
+            {% if obs.materia %}
+            <span class="badge me-1" style="background:var(--accent)">{{ obs.materia.nombre }}</span>
+            {% endif %}
+            <span class="obs-meta">{{ obs.fecha|date:"d/m/Y H:i" }}</span>
+        </div>
+        <button class="btn btn-sm btn-ghost text-danger"
+                hx-get="{% url 'core:observacion_delete' obs.pk %}"
+                hx-target="#formModalContent">
+            <i class="bi bi-trash"></i>
+        </button>
+    </div>
+    <p class="mb-0 mt-2" style="font-size:.9rem;color:var(--text)">{{ obs.contenido }}</p>
+</div>
+{% empty %}
+<div class="empty-state">
+    <i class="bi bi-chat-dots d-block"></i>
+    <p>No hay observaciones para este estudiante</p>
+</div>
+{% endfor %}

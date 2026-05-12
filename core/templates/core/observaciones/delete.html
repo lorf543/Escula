@@ -1,0 +1,20 @@
+<div class="modal-header">
+    <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Eliminar Observación</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form hx-post="{% url 'core:observacion_delete' object.pk %}" hx-target="#formModalContent">
+    {% csrf_token %}
+    <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar esta observación?</p>
+        <div class="obs-card tipo-{{ object.tipo }}">
+            <span class="badge bg-secondary">{{ object.get_tipo_display }}</span>
+            <p class="mb-0 mt-2">{{ object.contenido|truncatewords:30 }}</p>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash me-1"></i>Eliminar
+        </button>
+    </div>
+</form>
