@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Tareas{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="mb-0"><i class="bi bi-journal-text me-2"></i>Tareas</h1>
+        {% if user.is_staff %}
+        <p class="text-muted small mb-0">Como administrador, elija el <strong>profesor responsable</strong> al crear la tarea.</p>
+        {% endif %}
+    </div>
+    <a href="{% url 'tareas:tarea_create' %}" class="btn btn-accent"><i class="bi bi-plus-lg me-1"></i>Nueva tarea</a>
+</div>
+<div class="stat-card mb-4">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label" for="id_grado">Curso</label>
+            {{ filter.form.grado }}
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="id_materia">Materia</label>
+            {{ filter.form.materia }}
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-ghost">Filtrar</button>
+        </div>
+    </form>
+</div>
+<div class="table-dark-custom">
+    <table class="table table-dark mb-0">
+        <thead>
+            <tr>
+                <th>Título / descripción</th>
+                <th>Materia</th>
+                <th>Entrega</th>
+                <th>Asignación</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tareas %}
+            <tr>
+                <td>{{ t.titulo|default:t.descripcion|truncatechars:60 }}</td>
+                <td>
+                    {% if t.materia %}
+                    <span class="badge" style="background: var(--accent)">{{ t.materia.nombre }}</span>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>{{ t.fecha_entrega|date:"d/m/Y" }}</td>
+                <td>
+                    {% if t.tipo_asignacion == "GRUPOS" %}
+                    <span class="badge bg-primary me-1">Grupo</span>
+                    {% for g in t.grupos_resumen %}
+                    <span class="badge bg-secondary me-1">{{ g.nombre }} ({{ g.total }})</span>
+                    {% empty %}
+                    <span class="text-muted">Sin grupos</span>
+                    {% endfor %}
+                    {% else %}
+                    {% for g in t.grados.all %}
+                    <span class="badge bg-secondary me-1">{{ g.get_grado_display }}</span>
+                    {% empty %}—{% endfor %}
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'tareas:tarea_detail' t.pk %}" class="btn btn-sm btn-ghost">Ver</a>
+                    <a href="{% url 'tareas:tarea_evaluar' t.pk %}" class="btn btn-sm btn-accent">Evaluar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-muted text-center py-4">No hay tareas</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

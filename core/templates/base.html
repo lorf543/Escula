@@ -16,7 +16,26 @@
         <div class="brand">
             <i class="bi bi-mortarboard-fill me-2"></i>Liceo Catalina Pou
         </div>
-        <ul class="nav flex-column mt-3">
+    <ul class="nav flex-column mt-3">
+        {% if user.is_authenticated %}
+        {% if en_modo_padre %}
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'padre_dashboard' %}active{% endif %}"
+                   href="{% url 'accounts:padre_dashboard' %}">
+                    <i class="bi bi-people"></i>Mis hijos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'accounts:privacidad' %}">
+                    <i class="bi bi-shield-lock"></i>Privacidad
+                </a>
+            </li>
+            <li class="nav-item mt-2">
+                <a class="nav-link" href="{% url 'account_logout' %}">
+                    <i class="bi bi-box-arrow-right"></i>Cerrar sesión
+                </a>
+            </li>
+            {% else %}
             <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
                    href="{% url 'core:dashboard' %}">
@@ -42,6 +61,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link {% if 'curso' in request.resolver_match.url_name %}active{% endif %}"
+                   href="{% url 'core:curso_list' %}">
+                    <i class="bi bi-collection-fill"></i>Cursos
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.url_name == 'asistencia' %}active{% endif %}"
                    href="{% url 'core:asistencia' %}">
                     <i class="bi bi-calendar-check-fill"></i>Pasar Asistencia
@@ -53,7 +78,33 @@
                     <i class="bi bi-clock-history"></i>Historial
                 </a>
             </li>
-        </ul>
+            {% if user.is_staff or user.profesor_perfil %}
+            <li class="nav-item">
+                <a class="nav-link {% if 'tarea' in request.resolver_match.url_name %}active{% endif %}"
+                   href="{% url 'tareas:tarea_list' %}">
+                    <i class="bi bi-journal-text"></i>Tareas
+                </a>
+            </li>
+            {% endif %}
+            <li class="nav-item mt-2">
+                <a class="nav-link" href="{% url 'accounts:privacidad' %}">
+                    <i class="bi bi-shield-lock"></i>Privacidad
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'account_logout' %}">
+                    <i class="bi bi-box-arrow-right"></i>Cerrar sesión
+                </a>
+            </li>
+            {% endif %}
+        {% else %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'account_login' %}">
+                    <i class="bi bi-box-arrow-in-right"></i>Iniciar sesión
+                </a>
+            </li>
+        {% endif %}
+    </ul>
     </nav>
 
     <!-- Mobile toggle -->
@@ -95,21 +146,34 @@
         });
     </script>
     <script>
-        // Show modal when HTMX loads content into it
-        document.body.addEventListener('htmx:afterSwap', function(e) {
-            if (e.detail.target.id === 'formModalContent') {
-                new bootstrap.Modal(document.getElementById('formModal')).show();
-            }
-        });
+        (function () {
+            var modalEl = document.getElementById('formModal');
+            if (!modalEl) return;
 
-        // Close modal and show toast on successful form submission (204 response)
-        document.body.addEventListener('htmx:beforeOnLoad', function(e) {
-            if (e.detail.xhr.status === 204) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('formModal'));
-                if (modal) modal.hide();
-                showToast('Operación completada');
+            function cleanupModal() {
+                document.getElementById('formModalContent').innerHTML = '';
+                document.querySelectorAll('.modal-backdrop').forEach(function (el) { el.remove(); });
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('padding-right');
+                document.body.style.removeProperty('overflow');
             }
-        });
+
+            modalEl.addEventListener('hidden.bs.modal', cleanupModal);
+
+            document.body.addEventListener('htmx:afterSwap', function (e) {
+                if (e.detail.target.id === 'formModalContent') {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
+            });
+
+            document.body.addEventListener('htmx:beforeOnLoad', function (e) {
+                if (e.detail.xhr.status === 204) {
+                    var modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                    showToast('Operación completada');
+                }
+            });
+        })();
 
         function showToast(message) {
             const container = document.getElementById('toastContainer');

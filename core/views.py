@@ -1,10 +1,17 @@
 from datetime import date, timedelta
 import calendar
 
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.conf import settings
 from django.db.models import Count, Q
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
+
+from accounts.models import InvitacionPadre
+from accounts.permissions import staff_o_profesor
 
 from .forms import (
     AsistenciaForm,
@@ -15,14 +22,52 @@ from .forms import (
     ProfesorForm,
 )
 from .models import (
-    Asistencia, Estudiante, Materia, Observacion, Participacion, Profesor, GRADO_CHOICES,
+    Asistencia, Estudiante, Materia, Observacion, Participacion, Profesor, GRADO_CHOICES, ESTADO_ASISTENCIA,
 )
+from .asistencia_utils import calendario_asistencia_estudiante
+from .participacion_utils import resumen_participacion
+from .puntaje_utils import total_bruto_estudiante
+
+
+def school_access(view_fn):
+    return login_required(
+        user_passes_test(staff_o_profesor, login_url=settings.LOGIN_URL)(view_fn)
+    )
 
 
 # ── Dashboard ──────────────────────────────────────────────────────────
 
 
+@school_access
 def dashboard(request):
+    ranking = []
+    promedio_bruto = 0
+    alertas_bajas = 0
+    try:
+        from tareas.models import TareaEvaluacion
+        from tareas.rubricas import promedio_normalizado
+
+        estudiantes = list(Estudiante.objects.all())
+        total_sum = 0
+        for est in estudiantes:
+            part = resumen_participacion(est.participaciones.all())
+            evals = list(
+                TareaEvaluacion.objects.filter(estudiante=est, puntaje__isnull=False).select_related("tarea")
+            )
+            prom = promedio_normalizado(evals) if evals else None
+            bruto = total_bruto_estudiante(part, prom)
+            total_sum += bruto["total_bruto"]
+            if bruto["total_bruto"] < 0:
+                alertas_bajas += 1
+            ranking.append({"estudiante": est, "total_bruto": bruto["total_bruto"]})
+        ranking.sort(key=lambda x: x["total_bruto"], reverse=True)
+        ranking = ranking[:5]
+        promedio_bruto = round(total_sum / len(estudiantes), 1) if estudiantes else 0
+    except Exception:
+        ranking = []
+        promedio_bruto = 0
+        alertas_bajas = 0
+
     ctx = {
         "total_estudiantes": Estudiante.objects.count(),
         "total_profesores": Profesor.objects.count(),
@@ -34,6 +79,9 @@ def dashboard(request):
             .annotate(total=Count("id"))
             .order_by("grado")
         ),
+        "ranking_bruto": ranking,
+        "promedio_bruto_global": promedio_bruto,
+        "alertas_bruto_bajo": alertas_bajas,
     }
     return render(request, "core/dashboard.html", ctx)
 
@@ -41,6 +89,7 @@ def dashboard(request):
 # ── Materias CRUD ──────────────────────────────────────────────────────
 
 
+@school_access
 def materia_list(request):
     q = request.GET.get("q", "")
     materias = Materia.objects.all()
@@ -53,6 +102,7 @@ def materia_list(request):
     return render(request, "core/materias/list.html", {"materias": materias, "q": q})
 
 
+@school_access
 def materia_create(request):
     form = MateriaForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -61,6 +111,7 @@ def materia_create(request):
     return render(request, "core/materias/form.html", {"form": form, "title": "Nueva Materia"})
 
 
+@school_access
 def materia_update(request, pk):
     materia = get_object_or_404(Materia, pk=pk)
     form = MateriaForm(request.POST or None, instance=materia)
@@ -70,6 +121,7 @@ def materia_update(request, pk):
     return render(request, "core/materias/form.html", {"form": form, "title": "Editar Materia"})
 
 
+@school_access
 def materia_delete(request, pk):
     materia = get_object_or_404(Materia, pk=pk)
     if request.method == "POST":
@@ -81,6 +133,7 @@ def materia_delete(request, pk):
 # ── Profesores CRUD ────────────────────────────────────────────────────
 
 
+@school_access
 def profesor_list(request):
     q = request.GET.get("q", "")
     profesores = Profesor.objects.prefetch_related("materias").all()
@@ -93,6 +146,7 @@ def profesor_list(request):
     return render(request, "core/profesores/list.html", {"profesores": profesores, "q": q})
 
 
+@school_access
 def profesor_create(request):
     form = ProfesorForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -101,6 +155,7 @@ def profesor_create(request):
     return render(request, "core/profesores/form.html", {"form": form, "title": "Nuevo Profesor"})
 
 
+@school_access
 def profesor_update(request, pk):
     profesor = get_object_or_404(Profesor, pk=pk)
     form = ProfesorForm(request.POST or None, instance=profesor)
@@ -110,11 +165,13 @@ def profesor_update(request, pk):
     return render(request, "core/profesores/form.html", {"form": form, "title": "Editar Profesor"})
 
 
+@school_access
 def profesor_detail(request, pk):
     profesor = get_object_or_404(Profesor, pk=pk)
     return render(request, "core/profesores/detail.html", {"profesor": profesor})
 
 
+@school_access
 def profesor_delete(request, pk):
     profesor = get_object_or_404(Profesor, pk=pk)
     if request.method == "POST":
@@ -126,6 +183,7 @@ def profesor_delete(request, pk):
 # ── Estudiantes CRUD ───────────────────────────────────────────────────
 
 
+@school_access
 def estudiante_list(request):
     q = request.GET.get("q", "")
     grado = request.GET.get("grado", "")
@@ -142,6 +200,7 @@ def estudiante_list(request):
     return render(request, "core/estudiantes/list.html", ctx)
 
 
+@school_access
 def estudiante_create(request):
     form = EstudianteForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -152,6 +211,7 @@ def estudiante_create(request):
     )
 
 
+@school_access
 def estudiante_update(request, pk):
     est = get_object_or_404(Estudiante, pk=pk)
     form = EstudianteForm(request.POST or None, instance=est)
@@ -168,44 +228,202 @@ def _get_materias_estudiante(est):
     return Materia.objects.filter(profesores__in=est.profesores.all()).distinct()
 
 
+def materias_curriculum_estudiante(est):
+    """Materias del currículum: profesores asignados + materias con actividad registrada."""
+    por_profesor = Materia.objects.filter(profesores__in=est.profesores.all())
+    por_actividad = Materia.objects.filter(
+        Q(participaciones__estudiante=est) | Q(observaciones__estudiante=est)
+    )
+    return (por_profesor | por_actividad).distinct().order_by("nombre")
+
+
+def _profesor_materia_estudiante(est, materia):
+    """Profesor del estudiante que imparte la materia, si existe."""
+    if not materia:
+        return None
+    return est.profesores.filter(materias=materia).first()
+
+
+@school_access
 def estudiante_detail(request, pk):
     est = get_object_or_404(Estudiante, pk=pk)
     observaciones = est.observaciones.select_related("materia").all()
     participaciones = est.participaciones.select_related("materia").all()
-    total_asist = est.asistencias.count()
-    presentes = est.asistencias.filter(estado="P").count()
-    pct = round(presentes / total_asist * 100, 1) if total_asist else 0
+    pts = resumen_participacion(participaciones)
 
-    materias = _get_materias_estudiante(est)
-    puntos_por_materia = []
-    for m in materias:
-        positivos = participaciones.filter(materia=m, tipo="POSITIVO").count()
-        negativos = participaciones.filter(materia=m, tipo="NEGATIVO").count()
-        puntos_por_materia.append({
-            "materia": m,
-            "positivos": positivos,
-            "negativos": negativos,
-            "balance": positivos - negativos,
-        })
+    now = timezone.now()
+    inv_activa = (
+        InvitacionPadre.objects.filter(
+            estudiante=est, usado_en__isnull=True, expira_en__gt=now
+        )
+        .order_by("-creado_en")
+        .first()
+    )
+    url_invitacion = None
+    if inv_activa:
+        url_invitacion = request.build_absolute_uri(
+            reverse("accounts:registro_padre", args=[inv_activa.token])
+        )
 
-    total_pos = participaciones.filter(tipo="POSITIVO").count()
-    total_neg = participaciones.filter(tipo="NEGATIVO").count()
+    try:
+        from tareas.models import TareaEvaluacion
+
+        evaluaciones_tareas = (
+            TareaEvaluacion.objects.filter(estudiante=est)
+            .select_related("tarea")
+            .order_by("-tarea__fecha_entrega")[:30]
+        )
+    except Exception:
+        evaluaciones_tareas = []
 
     ctx = {
         "estudiante": est,
         "observaciones": observaciones,
         "participaciones": participaciones,
-        "total_asistencias": total_asist,
-        "presentes": presentes,
-        "pct_asistencia": pct,
-        "puntos_por_materia": puntos_por_materia,
-        "total_positivos": total_pos,
-        "total_negativos": total_neg,
-        "balance_total": total_pos - total_neg,
+        "total_asistencias": est.asistencias.count(),
+        "presentes": est.asistencias.filter(estado="P").count(),
+        "pct_asistencia": round(
+            est.asistencias.filter(estado="P").count() / est.asistencias.count() * 100, 1
+        ) if est.asistencias.count() else 0,
+        "puntos_por_materia": pts["puntos_por_materia"],
+        "total_positivos": pts["total_positivos"],
+        "total_negativos": pts["total_negativos"],
+        "balance_total": pts["balance_total"],
+        "url_invitacion_padre": url_invitacion,
+        "invitacion_padre": inv_activa,
+        "evaluaciones_tareas": evaluaciones_tareas,
     }
     return render(request, "core/estudiantes/detail.html", ctx)
 
 
+def _usuario_puede_ver_curriculum_escuela(user, estudiante) -> bool:
+    if not user.is_authenticated:
+        return False
+    if user.is_staff:
+        return True
+    pp = getattr(user, "profesor_perfil", None)
+    if pp and estudiante in pp.profesor.estudiantes.all():
+        return True
+    return False
+
+
+def _asistencias_ctx_mes(estudiante, mes, anio):
+    _, last_day = calendar.monthrange(anio, mes)
+    fecha_inicio = date(anio, mes, 1)
+    fecha_fin = date(anio, mes, last_day)
+    qs = (
+        Asistencia.objects.filter(
+            estudiante=estudiante,
+            fecha__gte=fecha_inicio,
+            fecha__lte=fecha_fin,
+        )
+        .order_by("fecha")
+    )
+    return {
+        "mes": mes,
+        "anio": anio,
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": fecha_fin,
+        "asistencias": qs,
+    }
+
+
+@school_access
+def estudiante_curriculum(request, pk):
+    """Resumen académico (asistencias del mes, participación, tareas, observaciones) para staff o profesor asignado."""
+    est = get_object_or_404(Estudiante, pk=pk)
+    if not _usuario_puede_ver_curriculum_escuela(request.user, est):
+        raise Http404()
+    hoy = date.today()
+    try:
+        mes = int(request.GET.get("mes", hoy.month))
+        anio = int(request.GET.get("anio", hoy.year))
+    except ValueError:
+        mes, anio = hoy.month, hoy.year
+    materia_param = request.GET.get("materia", "")
+    materia_id = int(materia_param) if materia_param.isdigit() else None
+    materias = list(materias_curriculum_estudiante(est))
+    materia_sel = None
+    if materia_id:
+        materia_sel = next((m for m in materias if m.pk == materia_id), None)
+        if materia_sel is None:
+            materia_sel = get_object_or_404(Materia, pk=materia_id)
+    profesor_materia = _profesor_materia_estudiante(est, materia_sel)
+
+    meses = [
+        (1, "Enero"), (2, "Febrero"), (3, "Marzo"), (4, "Abril"),
+        (5, "Mayo"), (6, "Junio"), (7, "Julio"), (8, "Agosto"),
+        (9, "Septiembre"), (10, "Octubre"), (11, "Noviembre"), (12, "Diciembre"),
+    ]
+    asist_ctx = calendario_asistencia_estudiante(est, mes, anio)
+
+    observaciones_qs = est.observaciones.select_related("materia").order_by("-fecha")
+    participaciones_qs = est.participaciones.select_related("materia").order_by("-fecha")
+    if materia_id:
+        observaciones_qs = observaciones_qs.filter(materia_id=materia_id)
+        participaciones_qs = participaciones_qs.filter(materia_id=materia_id)
+
+    observaciones = list(observaciones_qs[:5])
+    pts = resumen_participacion(participaciones_qs)
+    participaciones_recientes = list(participaciones_qs[:8])
+
+    try:
+        from tareas.models import ModalidadTarea, TareaEvaluacion
+        from tareas.rubricas import promedio_normalizado
+
+        eval_qs = (
+            TareaEvaluacion.objects.filter(estudiante=est)
+            .select_related("tarea", "tarea__materia", "tarea__creada_por")
+            .order_by("-tarea__fecha_entrega", "-tarea__creado_en")
+        )
+        if materia_id:
+            eval_qs = eval_qs.filter(
+                Q(tarea__materia_id=materia_id)
+                | Q(tarea__materia__isnull=True, tarea__creada_por__materias=materia_id)
+            ).distinct()
+        evaluaciones = list(eval_qs[:10])
+        eval_con_puntaje = [e for e in evaluaciones if e.puntaje is not None]
+        oral = [e for e in eval_con_puntaje if e.tarea.modalidad == ModalidadTarea.ORAL]
+        esc = [e for e in eval_con_puntaje if e.tarea.modalidad == ModalidadTarea.ESCRITA]
+        prom_oral = promedio_normalizado(oral)
+        prom_escrita = promedio_normalizado(esc)
+        prom_tareas_pct = promedio_normalizado(eval_con_puntaje)
+    except Exception:
+        evaluaciones = []
+        prom_oral = prom_escrita = prom_tareas_pct = None
+
+    score_bruto = total_bruto_estudiante(pts, prom_tareas_pct)
+    part_con_bonos = pts["balance_total"] + pts["total_bonos"]
+
+    return render(
+        request,
+        "core/estudiantes/curriculum.html",
+        {
+            "estudiante": est,
+            "meses": meses,
+            "materias": materias,
+            "materia_id": materia_id,
+            "materia_sel": materia_sel,
+            "profesor_materia": profesor_materia,
+            "observaciones": observaciones,
+            "evaluaciones": evaluaciones,
+            "participaciones_recientes": participaciones_recientes,
+            "total_positivos": pts["total_positivos"],
+            "total_negativos": pts["total_negativos"],
+            "total_bonos": pts["total_bonos"],
+            "balance_total": pts["balance_total"],
+            "part_con_bonos": part_con_bonos,
+            "puntos_por_materia": pts["puntos_por_materia"],
+            "prom_oral": prom_oral,
+            "prom_escrita": prom_escrita,
+            "prom_tareas_pct": prom_tareas_pct,
+            "score_bruto": score_bruto,
+            **asist_ctx,
+        },
+    )
+
+
+@school_access
 def estudiante_delete(request, pk):
     est = get_object_or_404(Estudiante, pk=pk)
     if request.method == "POST":
@@ -217,6 +435,7 @@ def estudiante_delete(request, pk):
 # ── Observaciones ──────────────────────────────────────────────────────
 
 
+@school_access
 def observacion_create(request, estudiante_pk):
     est = get_object_or_404(Estudiante, pk=estudiante_pk)
     materias = _get_materias_estudiante(est)
@@ -233,6 +452,7 @@ def observacion_create(request, estudiante_pk):
     )
 
 
+@school_access
 def observacion_delete(request, pk):
     obs = get_object_or_404(Observacion, pk=pk)
     if request.method == "POST":
@@ -241,6 +461,7 @@ def observacion_delete(request, pk):
     return render(request, "core/observaciones/delete.html", {"object": obs})
 
 
+@school_access
 def observacion_list_partial(request, estudiante_pk):
     est = get_object_or_404(Estudiante, pk=estudiante_pk)
     observaciones = est.observaciones.select_related("materia").all()
@@ -254,6 +475,7 @@ def observacion_list_partial(request, estudiante_pk):
 # ── Participación ─────────────────────────────────────────────────────
 
 
+@school_access
 def participacion_create(request, estudiante_pk):
     est = get_object_or_404(Estudiante, pk=estudiante_pk)
     materias = _get_materias_estudiante(est)
@@ -270,6 +492,7 @@ def participacion_create(request, estudiante_pk):
     )
 
 
+@school_access
 def participacion_delete(request, pk):
     part = get_object_or_404(Participacion, pk=pk)
     if request.method == "POST":
@@ -278,21 +501,11 @@ def participacion_delete(request, pk):
     return render(request, "core/participaciones/delete.html", {"object": part})
 
 
+@school_access
 def participacion_list_partial(request, estudiante_pk):
     est = get_object_or_404(Estudiante, pk=estudiante_pk)
     participaciones = est.participaciones.select_related("materia").all()
-
-    materias = _get_materias_estudiante(est)
-    puntos_por_materia = []
-    for m in materias:
-        positivos = participaciones.filter(materia=m, tipo="POSITIVO").count()
-        negativos = participaciones.filter(materia=m, tipo="NEGATIVO").count()
-        puntos_por_materia.append({
-            "materia": m,
-            "positivos": positivos,
-            "negativos": negativos,
-            "balance": positivos - negativos,
-        })
+    pts = resumen_participacion(participaciones)
 
     return render(
         request,
@@ -300,7 +513,8 @@ def participacion_list_partial(request, estudiante_pk):
         {
             "participaciones": participaciones,
             "estudiante": est,
-            "puntos_por_materia": puntos_por_materia,
+            "puntos_por_materia": pts["puntos_por_materia"],
+            "total_bonos": pts["total_bonos"],
         },
     )
 
@@ -308,6 +522,7 @@ def participacion_list_partial(request, estudiante_pk):
 # ── Asistencia ─────────────────────────────────────────────────────────
 
 
+@school_access
 def asistencia_view(request):
     hoy = date.today()
     fecha_str = request.GET.get("fecha")
@@ -330,18 +545,30 @@ def asistencia_view(request):
 
     estudiantes = Estudiante.objects.filter(grado=grado).order_by("apellido", "nombre")
 
+    existentes = {
+        a.estudiante_id: a
+        for a in Asistencia.objects.filter(
+            estudiante__in=estudiantes, fecha=fecha
+        )
+    }
+
+    ya_guardada = bool(existentes)
+
     registros = []
     for est in estudiantes:
-        asist, _ = Asistencia.objects.get_or_create(
-            estudiante=est, fecha=fecha, defaults={"estado": "P"}
-        )
+        asist = existentes.get(est.pk)
         registros.append({"estudiante": est, "asistencia": asist})
 
-    total = len(registros)
-    presentes = sum(1 for r in registros if r["asistencia"].estado == "P")
-    ausentes = sum(1 for r in registros if r["asistencia"].estado == "A")
-    tardanzas = sum(1 for r in registros if r["asistencia"].estado == "T")
-    excusas = sum(1 for r in registros if r["asistencia"].estado == "E")
+    resumen = None
+    if ya_guardada:
+        estados = [r["asistencia"].estado for r in registros if r["asistencia"]]
+        resumen = {
+            "total": len(registros),
+            "presentes": estados.count("P"),
+            "ausentes": estados.count("A"),
+            "tardanzas": estados.count("T"),
+            "excusas": estados.count("E"),
+        }
 
     ctx = {
         "fecha": fecha,
@@ -350,13 +577,9 @@ def asistencia_view(request):
         "registros": registros,
         "grados": GRADO_CHOICES,
         "sin_grado": False,
-        "resumen": {
-            "total": total,
-            "presentes": presentes,
-            "ausentes": ausentes,
-            "tardanzas": tardanzas,
-            "excusas": excusas,
-        },
+        "ya_guardada": ya_guardada,
+        "resumen": resumen,
+        "estados": ESTADO_ASISTENCIA,
     }
 
     if request.htmx:
@@ -365,6 +588,35 @@ def asistencia_view(request):
 
 
 @require_POST
+@school_access
+def asistencia_guardar(request):
+    fecha_str = request.POST.get("fecha")
+    grado = request.POST.get("grado", "")
+
+    try:
+        fecha = date.fromisoformat(fecha_str) if fecha_str else date.today()
+    except ValueError:
+        fecha = date.today()
+
+    estudiantes = Estudiante.objects.filter(grado=grado)
+    estados_validos = {v for v, _ in ESTADO_ASISTENCIA}
+
+    for est in estudiantes:
+        estado = request.POST.get(f"estado_{est.pk}", "P")
+        if estado not in estados_validos:
+            estado = "P"
+        Asistencia.objects.update_or_create(
+            estudiante=est,
+            fecha=fecha,
+            defaults={"estado": estado},
+        )
+
+    redirect_url = f"{request.build_absolute_uri('/')[:-1]}{reverse('core:asistencia')}?grado={grado}&fecha={fecha}"
+    return redirect(redirect_url)
+
+
+@require_POST
+@school_access
 def asistencia_toggle(request, pk):
     asist = get_object_or_404(Asistencia, pk=pk)
     estados = ["P", "A", "T", "E"]
@@ -374,6 +626,7 @@ def asistencia_toggle(request, pk):
     return render(request, "core/asistencia/badge.html", {"asistencia": asist})
 
 
+@school_access
 def asistencia_historial(request):
     grado = request.GET.get("grado", "")
     mes_str = request.GET.get("mes", "")
@@ -472,6 +725,7 @@ def asistencia_historial(request):
     return render(request, "core/asistencia/historial.html", ctx)
 
 
+@school_access
 def asistencia_exportar(request):
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -520,9 +774,10 @@ def asistencia_exportar(request):
     if grado:
         asist_qs = asist_qs.filter(estudiante__grado=grado)
 
+    # Misma clave que el historial: código P/A/T/E (no get_estado_display + [:1])
     asist_map = {}
     for a in asist_qs:
-        asist_map[(a.estudiante_id, a.fecha)] = a.get_estado_display()
+        asist_map[(a.estudiante_id, a.fecha)] = a.estado
 
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
@@ -535,16 +790,16 @@ def asistencia_exportar(request):
         top=Side(style="thin"), bottom=Side(style="thin"),
     )
     estado_fills = {
-        "Presente": PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
-        "Ausente": PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
-        "Tardanza": PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid"),
-        "Excusa": PatternFill(start_color="B4C6E7", end_color="B4C6E7", fill_type="solid"),
+        "P": PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
+        "A": PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
+        "T": PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid"),
+        "E": PatternFill(start_color="B4C6E7", end_color="B4C6E7", fill_type="solid"),
     }
     estado_fonts = {
-        "Presente": Font(color="006100", size=10),
-        "Ausente": Font(color="9C0006", size=10),
-        "Tardanza": Font(color="9C6500", size=10),
-        "Excusa": Font(color="003366", size=10),
+        "P": Font(color="006100", size=10),
+        "A": Font(color="9C0006", size=10),
+        "T": Font(color="9C6500", size=10),
+        "E": Font(color="003366", size=10),
     }
 
     for g_val, g_label, estudiantes in grados_export:
@@ -580,20 +835,20 @@ def asistencia_exportar(request):
             p = a = t = e = 0
             for j, dia in enumerate(dias_lectivos):
                 col = 4 + j
-                estado_str = asist_map.get((est.id, dia), "")
-                cell = ws.cell(row=row, column=col, value=estado_str[:1] if estado_str else "")
+                estado_code = asist_map.get((est.id, dia), "")
+                cell = ws.cell(row=row, column=col, value=estado_code if estado_code else "")
                 cell.alignment = center
                 cell.border = thin
-                if estado_str in estado_fills:
-                    cell.fill = estado_fills[estado_str]
-                    cell.font = estado_fonts[estado_str]
-                if estado_str == "Presente":
+                if estado_code in estado_fills:
+                    cell.fill = estado_fills[estado_code]
+                    cell.font = estado_fonts[estado_code]
+                if estado_code == "P":
                     p += 1
-                elif estado_str == "Ausente":
+                elif estado_code == "A":
                     a += 1
-                elif estado_str == "Tardanza":
+                elif estado_code == "T":
                     t += 1
-                elif estado_str == "Excusa":
+                elif estado_code == "E":
                     e += 1
 
             summary_col = 4 + len(dias_lectivos)

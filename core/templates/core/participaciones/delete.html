@@ -8,9 +8,9 @@
         <p>¿Eliminar este punto de participación?</p>
         <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:var(--surface-3)">
             {% if object.tipo == "POSITIVO" %}
-            <span class="badge bg-success">+1</span>
+            <span class="badge bg-success">+{{ object.valor }}</span>
             {% else %}
-            <span class="badge bg-danger">-1</span>
+            <span class="badge bg-danger">−{{ object.valor }}</span>
             {% endif %}
             <span>{{ object.materia.nombre }}</span>
             {% if object.descripcion %}

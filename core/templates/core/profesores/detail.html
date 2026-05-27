@@ -9,9 +9,11 @@
         </a>
         <h1 class="mt-1"><i class="bi bi-person-badge-fill me-2"></i>{{ profesor.nombre_completo }}</h1>
     </div>
-    <button class="btn btn-accent"
+    <button type="button"
+            class="btn btn-accent"
             hx-get="{% url 'core:profesor_update' profesor.pk %}"
-            hx-target="#formModalContent">
+            hx-target="#formModalContent"
+            hx-swap="innerHTML">
         <i class="bi bi-pencil me-1"></i>Editar
     </button>
 </div>

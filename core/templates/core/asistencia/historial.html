@@ -9,12 +9,11 @@
            class="btn btn-ghost">
             <i class="bi bi-calendar-check me-1"></i>Pasar Asistencia
         </a>
-        {% if not sin_grado %}
-        <a href="{% url 'core:asistencia_exportar' %}?grado={{ grado }}&mes={{ mes }}&anio={{ anio }}"
+        <a id="historial-export-header"
+           href="{% url 'core:asistencia_exportar' %}?mes={{ mes }}&anio={{ anio }}{% if grado %}&grado={{ grado }}{% endif %}"
            class="btn btn-accent">
             <i class="bi bi-file-earmark-excel me-1"></i>Descargar Excel
         </a>
-        {% endif %}
     </div>
 </div>
 
@@ -67,17 +66,19 @@
                 <option value="2027" {% if anio == 2027 %}selected{% endif %}>2027</option>
             </select>
         </div>
-        <div class="col-md-3 text-end">
-            {% if not sin_grado %}
-            <a href="{% url 'core:asistencia_exportar' %}?grado={{ grado }}&mes={{ mes }}&anio={{ anio }}"
-               class="btn btn-sm btn-ghost" title="Descargar este curso">
-                <i class="bi bi-download me-1"></i>Excel de {{ grado_display }}
+        <div class="col-md-3 text-end d-flex flex-wrap gap-1 justify-content-end">
+            <a id="historial-export-curso"
+               href="{% url 'core:asistencia_exportar' %}?mes={{ mes }}&anio={{ anio }}{% if grado %}&grado={{ grado }}{% endif %}"
+               class="btn btn-sm btn-ghost {% if not grado %}d-none{% endif %}"
+               title="Descargar solo el curso seleccionado">
+                <i class="bi bi-download me-1"></i><span class="historial-export-curso-label">{% if grado %}Excel: {{ grado_display }}{% else %}Excel del curso{% endif %}</span>
             </a>
-            <a href="{% url 'core:asistencia_exportar' %}?mes={{ mes }}&anio={{ anio }}"
-               class="btn btn-sm btn-ghost" title="Descargar todos los cursos">
-                <i class="bi bi-download me-1"></i>Excel General
+            <a id="historial-export-todos"
+               href="{% url 'core:asistencia_exportar' %}?mes={{ mes }}&anio={{ anio }}"
+               class="btn btn-sm btn-ghost"
+               title="Todos los cursos con estudiantes, mismo mes y año">
+                <i class="bi bi-download me-1"></i>Todos los cursos
             </a>
-            {% endif %}
         </div>
     </div>
 </div>
@@ -97,4 +98,53 @@
         <span class="badge bg-dark border border-secondary ms-1">- = Sin registro</span>
     </p>
 </div>
+<script>
+(function () {
+    var exportBase = "{% url 'core:asistencia_exportar' %}";
+    function syncHistorialExportLinks() {
+        var gEl = document.getElementById("grado-filter");
+        var mEl = document.getElementById("mes-filter");
+        var aEl = document.getElementById("anio-filter");
+        if (!gEl || !mEl || !aEl) return;
+        var g = gEl.value;
+        var m = mEl.value;
+        var a = aEl.value;
+        var qTodos = "mes=" + encodeURIComponent(m) + "&anio=" + encodeURIComponent(a);
+        var qCurso = g ? qTodos + "&grado=" + encodeURIComponent(g) : qTodos;
+        var header = document.getElementById("historial-export-header");
+        var curso = document.getElementById("historial-export-curso");
+        var todos = document.getElementById("historial-export-todos");
+        if (header) {
+            header.href = exportBase + "?" + (g ? qCurso : qTodos);
+        }
+        if (todos) {
+            todos.href = exportBase + "?" + qTodos;
+        }
+        if (curso) {
+            curso.href = exportBase + "?" + qCurso;
+            if (g) {
+                curso.classList.remove("d-none");
+                var opt = gEl.options[gEl.selectedIndex];
+                var span = curso.querySelector(".historial-export-curso-label");
+                if (span && opt) {
+                    span.textContent = "Excel: " + opt.text;
+                }
+            } else {
+                curso.classList.add("d-none");
+            }
+        }
+    }
+    document.addEventListener("DOMContentLoaded", syncHistorialExportLinks);
+    document.body.addEventListener("change", function (ev) {
+        if (ev.target && (ev.target.id === "grado-filter" || ev.target.id === "mes-filter" || ev.target.id === "anio-filter")) {
+            syncHistorialExportLinks();
+        }
+    });
+    document.body.addEventListener("htmx:afterSwap", function (ev) {
+        if (ev.detail && ev.detail.target && ev.detail.target.id === "historial-content") {
+            syncHistorialExportLinks();
+        }
+    });
+})();
+</script>
 {% endblock %}

@@ -1,0 +1,39 @@
+<div class="modal-header">
+    <h5 class="modal-title"><i class="bi bi-clipboard-data me-2"></i>{{ title }}</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form {% if evaluacion %}
+      hx-post="{% url 'core:evaluacion_p1_update' evaluacion.pk %}"
+      {% else %}
+      hx-post="{% url 'core:evaluacion_p1_create' curso.pk %}"
+      {% endif %}
+      hx-target="#formModalContent" hx-swap="innerHTML"
+      hx-encoding="multipart/form-data"
+      enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="modal-body">
+        <p class="text-muted small mb-2">Curso: <strong class="text-light">{{ curso.nombre_completo }}</strong></p>
+        <p class="text-muted small mb-3">
+            Evaluación diagnóstica inicial (P1). Una por materia. Incluya texto y/o imagen (instrumento, rúbrica, evidencia).
+        </p>
+        {% for field in form %}
+        <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text text-muted">{{ field.help_text }}</div>{% endif %}
+            {% if field.errors %}<div class="text-danger small">{{ field.errors.0 }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        {% if evaluacion and evaluacion.imagen %}
+        <p class="small text-muted">Imagen actual:</p>
+        <img src="{{ evaluacion.imagen.url }}" alt="P1" class="img-fluid rounded mb-2" style="max-height:120px">
+        {% endif %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger py-2">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-accent"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+    </div>
+</form>

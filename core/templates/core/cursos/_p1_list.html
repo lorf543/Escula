@@ -1,0 +1,69 @@
+{% if evaluaciones_p1 %}
+{% for ev in evaluaciones_p1 %}
+<div class="stat-card mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h6 class="text-light mb-1">
+                <span class="badge bg-success me-2">P1</span>{{ ev.materia }}
+            </h6>
+            <span class="text-muted small">{{ ev.fecha|date:"d/m/Y" }}</span>
+        </div>
+        <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-ghost"
+                    hx-get="{% url 'core:evaluacion_p1_update' ev.pk %}"
+                    hx-target="#formModalContent" hx-swap="innerHTML">
+                <i class="bi bi-pencil"></i> Editar P1
+            </button>
+            <button type="button" class="btn btn-ghost text-danger"
+                    hx-get="{% url 'core:evaluacion_p1_delete' ev.pk %}"
+                    hx-target="#formModalContent" hx-swap="innerHTML">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+    {% if ev.contenido_texto %}
+    <p class="mt-3 mb-2 text-light">{{ ev.contenido_texto|linebreaksbr }}</p>
+    {% endif %}
+    {% if ev.imagen %}
+    <a href="{{ ev.imagen.url }}" target="_blank" class="d-inline-block mt-2">
+        <img src="{{ ev.imagen.url }}" alt="Evidencia P1" class="img-fluid rounded border border-secondary" style="max-height:200px">
+    </a>
+    {% endif %}
+
+    <hr class="border-secondary my-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="small text-muted"><i class="bi bi-graph-up me-1"></i>Registros P2 (progreso)</span>
+        <button type="button" class="btn btn-accent btn-sm"
+                hx-get="{% url 'core:registro_p2_create' ev.pk %}"
+                hx-target="#formModalContent" hx-swap="innerHTML">
+            <i class="bi bi-plus-lg me-1"></i>P2
+        </button>
+    </div>
+    {% for reg in ev.registros_p2.all %}
+    <div class="border border-secondary rounded p-2 mb-2 small">
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="badge bg-info text-dark">P2</span>
+            <span class="text-muted">{{ reg.fecha|date:"d/m/Y" }}</span>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-link btn-sm p-0"
+                        hx-get="{% url 'core:registro_p2_update' reg.pk %}"
+                        hx-target="#formModalContent" hx-swap="innerHTML">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="btn btn-link btn-sm text-danger p-0"
+                        hx-get="{% url 'core:registro_p2_delete' reg.pk %}"
+                        hx-target="#formModalContent" hx-swap="innerHTML">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+        <p class="mb-0 mt-1 text-light">{{ reg.contenido|linebreaksbr }}</p>
+    </div>
+    {% empty %}
+    <p class="text-muted small mb-0">Aún no hay registros P2 para esta materia.</p>
+    {% endfor %}
+</div>
+{% endfor %}
+{% else %}
+<p class="text-muted">Sin evaluaciones P1. Cree una por materia como evaluación diagnóstica inicial.</p>
+{% endif %}

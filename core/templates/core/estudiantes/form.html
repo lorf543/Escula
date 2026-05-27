@@ -15,7 +15,7 @@
             {% for field in form %}
             <div class="{% if field.name == 'profesores' %}col-12{% else %}col-md-6{% endif %} mb-3">
                 <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {% if "CheckboxSelectMultiple" in field.field.widget.__class__.__name__ %}
+                {% if field.name == "profesores" %}
                 <div class="d-flex flex-wrap gap-2 p-2 rounded" style="background:var(--surface-3);border:1px solid var(--border)">
                     {% for choice in field %}
                     <div class="form-check">

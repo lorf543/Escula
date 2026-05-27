@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Enlace expirado{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-hourglass-bottom me-2"></i>Enlace expirado</h1>
+</div>
+<div class="stat-card mb-4" style="max-width:520px">
+    <p>Este enlace caducó (válido solo 24 horas). Debe solicitar al colegio un <strong>nuevo enlace</strong>, o deje sus datos aquí y el personal le contactará.</p>
+    <hr>
+    <h6 class="mb-3">Solicitar nuevo enlace</h6>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="solicitud" value="1">
+        {% for field in form_sol %}
+        <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<div class="text-danger small">{{ field.errors.0 }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-accent">Enviar solicitud</button>
+    </form>
+</div>
+<a href="{% url 'account_login' %}" class="btn btn-ghost">Ir al inicio de sesión</a>
+{% endblock %}

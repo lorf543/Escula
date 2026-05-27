@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Vincular otro hijo{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-link-45deg me-2"></i>Vincular estudiante</h1>
+    <p class="text-muted mb-0">Confirme la <strong>cédula electoral</strong> del estudiante del enlace (11 dígitos).</p>
+</div>
+<div class="stat-card" style="max-width:420px">
+    <p class="small">Estudiante del enlace: <strong>{{ estudiante.apellido }}, {{ estudiante.nombre }}</strong></p>
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<div class="text-danger small">{{ field.errors.0 }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-accent w-100">Vincular</button>
+    </form>
+</div>
+{% endblock %}

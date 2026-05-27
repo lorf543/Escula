@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Evaluar tarea{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="mb-0">Evaluar: {{ tarea.titulo|default:"Tarea" }}</h1>
+        <p class="text-muted small mb-0">
+            Modalidad:
+            {% if tarea.modalidad == "ORAL" %}
+            <span class="badge bg-info text-dark">Oral (1–5)</span>
+            {% else %}
+            <span class="badge bg-secondary">Escrita (1–10)</span>
+            {% endif %}
+        </p>
+    </div>
+    <a href="{% url 'tareas:tarea_detail' tarea.pk %}" class="btn btn-ghost">Volver</a>
+</div>
+
+<div class="stat-card mb-3">
+    <button class="btn btn-sm btn-ghost mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#rubricaPanel">
+        <i class="bi bi-list-check me-1"></i>Ver rúbrica de evaluación
+    </button>
+    <div class="collapse show" id="rubricaPanel">
+        <div class="table-responsive">
+            <table class="table table-dark table-sm mb-0">
+                <thead>
+                    <tr><th>Nivel</th><th>Etiqueta</th><th>Descriptor</th></tr>
+                </thead>
+                <tbody>
+                    {% for val, label, desc in rubrica_items %}
+                    <tr>
+                        <td class="fw-bold">{{ val }}</td>
+                        <td>{{ label }}</td>
+                        <td class="text-muted small">{{ desc }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small mt-2 mb-0">
+            <i class="bi bi-info-circle me-1"></i>
+            Puntaje según rúbrica por estudiante. Observación general aplica a todo el grupo.
+        </p>
+    </div>
+</div>
+
+<form method="post" id="evalForm">
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    {% if bloques_grupo %}
+    {% for bloque in bloques_grupo %}
+    <div class="stat-card mb-4 table-dark-custom">
+        <h5 class="mb-3"><i class="bi bi-people me-2"></i>{{ bloque.grupo.nombre }}</h5>
+        <div class="mb-3">
+            <label class="form-label" for="obs_grupo_{{ bloque.grupo.pk }}">Observación general del grupo</label>
+            <textarea name="obs_grupo_{{ bloque.grupo.pk }}" id="obs_grupo_{{ bloque.grupo.pk }}" rows="3"
+                      class="form-control bg-dark text-light border-secondary">{% if bloque.eval_grupo %}{{ bloque.eval_grupo.observacion_general }}{% endif %}</textarea>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="table table-dark table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Estudiante</th>
+                        <th class="text-center">No realizó</th>
+                        <th class="text-center">Tardío</th>
+                        <th style="min-width:220px">Puntaje (rúbrica)</th>
+                        <th>Comentario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in bloque.forms %}
+                    <tr class="eval-row">
+                        <td>{% for h in f.hidden_fields %}{{ h }}{% endfor %}{{ f.instance.estudiante.apellido }}, {{ f.instance.estudiante.nombre }}</td>
+                        <td class="text-center">{{ f.no_realizado }}</td>
+                        <td class="text-center">{{ f.tardio }}</td>
+                        <td>{{ f.puntaje }}</td>
+                        <td style="min-width:200px">{{ f.comentario_maestro }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="table-dark-custom" style="overflow-x:auto">
+        <table class="table table-dark table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Estudiante</th>
+                    <th class="text-center">No realizó</th>
+                    <th class="text-center">Tardío</th>
+                    <th style="min-width:220px">Puntaje (rúbrica)</th>
+                    <th>Comentario</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in formset %}
+                <tr class="eval-row">
+                    <td>{% for h in f.hidden_fields %}{{ h }}{% endfor %}{{ f.instance.estudiante.apellido }}, {{ f.instance.estudiante.nombre }}</td>
+                    <td class="text-center">{{ f.no_realizado }}</td>
+                    <td class="text-center">{{ f.tardio }}</td>
+                    <td>{{ f.puntaje }}</td>
+                    <td style="min-width:200px">{{ f.comentario_maestro }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="p-3">
+        <button type="submit" class="btn btn-accent">Guardar evaluaciones</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    function syncRow(row) {
+        var noRealizado = row.querySelector(".no-realizado-check");
+        var puntaje = row.querySelector(".puntaje-select");
+        if (!puntaje) return;
+        var bloquear = noRealizado && noRealizado.checked;
+        puntaje.disabled = bloquear;
+        if (bloquear) puntaje.value = "";
+    }
+    document.querySelectorAll(".eval-row").forEach(function (row) {
+        syncRow(row);
+        var noRealizado = row.querySelector(".no-realizado-check");
+        if (noRealizado) {
+            noRealizado.addEventListener("change", function () { syncRow(row); });
+        }
+    });
+})();
+</script>
+{% endblock %}

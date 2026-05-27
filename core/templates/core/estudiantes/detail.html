@@ -9,10 +9,15 @@
         </a>
         <h1 class="mt-1"><i class="bi bi-person-fill me-2"></i>{{ estudiante.nombre_completo }}</h1>
     </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-accent"
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'core:estudiante_curriculum' estudiante.pk %}" class="btn btn-accent">
+            <i class="bi bi-journal-richtext me-1"></i>Ver currículum
+        </a>
+        <button type="button"
+                class="btn btn-ghost"
                 hx-get="{% url 'core:estudiante_update' estudiante.pk %}"
-                hx-target="#formModalContent">
+                hx-target="#formModalContent"
+                hx-swap="innerHTML">
             <i class="bi bi-pencil me-1"></i>Editar
         </button>
     </div>
@@ -58,6 +63,60 @@
     </div>
 </div>
 
+<!-- Invitación padres / tutores -->
+<div class="stat-card mb-4">
+    <h6 class="mb-3"><i class="bi bi-link-45deg me-2"></i>Registro de padres o tutores</h6>
+    <p class="text-muted small mb-2">
+        Comparta el enlace con el tutor. Caduca a las <strong>24 horas</strong>. Si expira, el tutor puede dejar una solicitud desde esa misma página.
+    </p>
+    {% if url_invitacion_padre %}
+    <div class="mb-2">
+        <label class="form-label small text-muted">Enlace activo (válido hasta {{ invitacion_padre.expira_en|date:"d/m/Y H:i" }})</label>
+        <input type="text" readonly class="form-control form-control-sm bg-dark text-light border-secondary"
+               value="{{ url_invitacion_padre }}" onclick="this.select()">
+    </div>
+    {% else %}
+    <p class="text-muted small">No hay enlace activo. Genere uno nuevo cuando lo necesite.</p>
+    {% endif %}
+    <form method="post" action="{% url 'accounts:crear_invitacion' estudiante.pk %}" class="mt-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-accent">
+            <i class="bi bi-arrow-clockwise me-1"></i>Generar nuevo enlace (24 h)
+        </button>
+    </form>
+</div>
+
+<!-- Tareas (evaluaciones) -->
+<div class="table-dark-custom mb-4">
+    <div class="p-3" style="border-bottom:1px solid var(--border)">
+        <h6 class="mb-0"><i class="bi bi-journal-text me-2"></i>Tareas asignadas</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark mb-0 table-sm">
+            <thead>
+                <tr>
+                    <th>Tarea</th>
+                    <th>Entrega</th>
+                    <th>Estado</th>
+                    <th>Tardío</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ev in evaluaciones_tareas %}
+                <tr>
+                    <td>{{ ev.tarea.titulo|default:ev.tarea.descripcion|truncatechars:40 }}</td>
+                    <td>{{ ev.tarea.fecha_entrega|date:"d/m/Y" }}</td>
+                    <td>{{ ev.get_estado_display }}</td>
+                    <td>{% if ev.tardio %}Sí{% else %}—{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-muted text-center py-3">Sin tareas registradas</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <!-- Puntos de Participación -->
 <div class="table-dark-custom mb-4">
     <div class="p-3 d-flex justify-content-between align-items-center" style="border-bottom:1px solid var(--border)">
@@ -71,9 +130,11 @@
                 </span>
             </div>
         </div>
-        <button class="btn btn-sm btn-accent"
+        <button type="button"
+                class="btn btn-sm btn-accent"
                 hx-get="{% url 'core:participacion_create' estudiante.pk %}"
-                hx-target="#formModalContent">
+                hx-target="#formModalContent"
+                hx-swap="innerHTML">
             <i class="bi bi-plus-lg me-1"></i>Nuevo Punto
         </button>
     </div>
@@ -90,9 +151,11 @@
 <div class="table-dark-custom">
     <div class="p-3 d-flex justify-content-between align-items-center" style="border-bottom:1px solid var(--border)">
         <h6 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Observaciones</h6>
-        <button class="btn btn-sm btn-accent"
+        <button type="button"
+                class="btn btn-sm btn-accent"
                 hx-get="{% url 'core:observacion_create' estudiante.pk %}"
-                hx-target="#formModalContent">
+                hx-target="#formModalContent"
+                hx-swap="innerHTML">
             <i class="bi bi-plus-lg me-1"></i>Nueva Observación
         </button>
     </div>
@@ -104,4 +167,12 @@
         {% include "core/observaciones/list_partial.html" %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.body.addEventListener('estudianteChanged', function () {
+    window.location.reload();
+});
+</script>
 {% endblock %}

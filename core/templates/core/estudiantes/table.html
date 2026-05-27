@@ -26,14 +26,18 @@
                     <a href="{% url 'core:estudiante_detail' est.pk %}" class="btn btn-sm btn-ghost">
                         <i class="bi bi-eye"></i>
                     </a>
-                    <button class="btn btn-sm btn-ghost"
+                    <button type="button"
+                            class="btn btn-sm btn-ghost"
                             hx-get="{% url 'core:estudiante_update' est.pk %}"
-                            hx-target="#formModalContent">
+                            hx-target="#formModalContent"
+                            hx-swap="innerHTML">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-ghost text-danger"
+                    <button type="button"
+                            class="btn btn-sm btn-ghost text-danger"
                             hx-get="{% url 'core:estudiante_delete' est.pk %}"
-                            hx-target="#formModalContent">
+                            hx-target="#formModalContent"
+                            hx-swap="innerHTML">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>

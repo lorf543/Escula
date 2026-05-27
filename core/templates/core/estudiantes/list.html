@@ -4,9 +4,11 @@
 {% block content %}
 <div class="page-header">
     <h1><i class="bi bi-people-fill me-2"></i>Estudiantes</h1>
-    <button class="btn btn-accent"
+    <button type="button"
+            class="btn btn-accent"
             hx-get="{% url 'core:estudiante_create' %}"
-            hx-target="#formModalContent">
+            hx-target="#formModalContent"
+            hx-swap="innerHTML">
         <i class="bi bi-plus-lg me-1"></i>Nuevo Estudiante
     </button>
 </div>

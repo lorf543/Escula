@@ -46,6 +46,44 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+        <div class="stat-card d-flex justify-content-between align-items-center">
+            <div>
+                <div class="number">{{ promedio_bruto_global }}</div>
+                <div class="label">Promedio bruto global</div>
+            </div>
+            <i class="bi bi-graph-up-arrow icon text-info"></i>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="stat-card d-flex justify-content-between align-items-center">
+            <div>
+                <div class="number">{{ alertas_bruto_bajo }}</div>
+                <div class="label">Estudiantes con bruto negativo</div>
+            </div>
+            <i class="bi bi-exclamation-triangle-fill icon text-warning"></i>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="table-dark-custom h-100">
+            <div class="p-3" style="border-bottom: 1px solid var(--border)">
+                <h6 class="mb-0"><i class="bi bi-trophy me-2"></i>Top 5 puntaje bruto</h6>
+            </div>
+            <div class="p-3">
+                {% for item in ranking_bruto %}
+                <div class="d-flex justify-content-between align-items-center py-1">
+                    <span class="small">{{ item.estudiante.apellido }}, {{ item.estudiante.nombre }}</span>
+                    <span class="badge bg-primary">{{ item.total_bruto }}</span>
+                </div>
+                {% empty %}
+                <div class="text-muted small">Sin datos de puntajes.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-3">
     <!-- Estudiantes por grado -->
     <div class="col-lg-6">

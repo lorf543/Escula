@@ -1,0 +1,14 @@
+<div class="modal-header">
+    <h5 class="modal-title text-danger"><i class="bi bi-trash me-2"></i>Eliminar registro P2</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form hx-post="{% url 'core:registro_p2_delete' object.pk %}" hx-target="#formModalContent" hx-swap="innerHTML">
+    {% csrf_token %}
+    <div class="modal-body">
+        <p>¿Eliminar el registro del {{ object.fecha|date:"d/m/Y" }}?</p>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-danger">Eliminar</button>
+    </div>
+</form>

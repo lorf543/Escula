@@ -32,14 +32,18 @@
                     <a href="{% url 'core:profesor_detail' profesor.pk %}" class="btn btn-sm btn-ghost">
                         <i class="bi bi-eye"></i>
                     </a>
-                    <button class="btn btn-sm btn-ghost"
+                    <button type="button"
+                            class="btn btn-sm btn-ghost"
                             hx-get="{% url 'core:profesor_update' profesor.pk %}"
-                            hx-target="#formModalContent">
+                            hx-target="#formModalContent"
+                            hx-swap="innerHTML">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-ghost text-danger"
+                    <button type="button"
+                            class="btn btn-sm btn-ghost text-danger"
                             hx-get="{% url 'core:profesor_delete' profesor.pk %}"
-                            hx-target="#formModalContent">
+                            hx-target="#formModalContent"
+                            hx-swap="innerHTML">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>

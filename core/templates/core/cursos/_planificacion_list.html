@@ -1,0 +1,37 @@
+{% if planificaciones %}
+{% for plan in planificaciones %}
+<div class="stat-card mb-3">
+    <div class="d-flex justify-content-between align-items-start mb-2">
+        <div>
+            <span class="badge {% if plan.tipo == 'DIARIA' %}bg-primary{% else %}bg-warning text-dark{% endif %} me-2">
+                {{ plan.get_tipo_display }}
+            </span>
+            <span class="text-muted small">{{ plan.fecha|date:"d/m/Y" }}</span>
+            <span class="badge bg-secondary ms-2">{{ plan.materia }}</span>
+        </div>
+        <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-ghost"
+                    hx-get="{% url 'core:planificacion_update' plan.pk %}"
+                    hx-target="#formModalContent" hx-swap="innerHTML">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button type="button" class="btn btn-ghost text-danger"
+                    hx-get="{% url 'core:planificacion_delete' plan.pk %}"
+                    hx-target="#formModalContent" hx-swap="innerHTML">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+    {% if plan.titulo %}<h6 class="text-light">{{ plan.titulo }}</h6>{% endif %}
+    <div class="plan-contenido text-light small">{{ plan.contenido|safe }}</div>
+    {% if plan.competencias_fundamentales %}
+    <p class="small mt-2 mb-0"><strong>Competencias:</strong> {{ plan.competencias_fundamentales }}</p>
+    {% endif %}
+    {% if plan.indicadores_logro %}
+    <p class="small mb-0"><strong>Indicadores:</strong> {{ plan.indicadores_logro }}</p>
+    {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<p class="text-muted">Sin planificaciones. Use el editor enriquecido para clases diarias o unidades generales.</p>
+{% endif %}

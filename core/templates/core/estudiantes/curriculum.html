@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}Currículum — {{ estudiante.nombre_completo }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{% url 'core:estudiante_detail' estudiante.pk %}" class="text-muted text-decoration-none small">
+            <i class="bi bi-arrow-left me-1"></i>Ficha del estudiante
+        </a>
+        <h1 class="mt-1">
+            <i class="bi bi-journal-richtext me-2"></i>Currículum / resumen
+        </h1>
+        <p class="text-muted mb-0">
+            {{ estudiante.apellido }}, {{ estudiante.nombre }} — {{ estudiante.get_grado_display }}
+        </p>
+        {% if materia_sel and profesor_materia %}
+        <p class="text-muted small mb-0 mt-1">
+            <i class="bi bi-person-badge me-1"></i>Profesor: {{ profesor_materia.nombre_completo }} — {{ materia_sel.nombre }}
+        </p>
+        {% elif materia_sel %}
+        <p class="text-muted small mb-0 mt-1">
+            <i class="bi bi-book me-1"></i>Materia: {{ materia_sel.nombre }}
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<form method="get" class="stat-card mb-4 row g-2 align-items-end">
+    <div class="col-auto">
+        <label class="form-label">Mes</label>
+        <select name="mes" class="form-select bg-dark text-light border-secondary" onchange="this.form.submit()">
+            {% for val, label in meses %}
+            <option value="{{ val }}" {% if mes == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <label class="form-label">Año</label>
+        <select name="anio" class="form-select bg-dark text-light border-secondary" onchange="this.form.submit()">
+            <option value="2025" {% if anio == 2025 %}selected{% endif %}>2025</option>
+            <option value="2026" {% if anio == 2026 %}selected{% endif %}>2026</option>
+            <option value="2027" {% if anio == 2027 %}selected{% endif %}>2027</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <label class="form-label">Materia</label>
+        <select name="materia" class="form-select bg-dark text-light border-secondary" onchange="this.form.submit()">
+            <option value="">Todas las materias</option>
+            {% for m in materias %}
+            <option value="{{ m.pk }}" {% if materia_id == m.pk %}selected{% endif %}>{{ m.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-12">
+        <p class="text-muted small mb-0">
+            <i class="bi bi-info-circle me-1"></i>Asistencias: mes seleccionado.
+            Puntos y observaciones: historial completo{% if materia_sel %} · filtro: {{ materia_sel.nombre }}{% endif %}.
+        </p>
+    </div>
+</form>
+
+<div class="stat-card mb-4">
+    <h6 class="mb-3">
+        <i class="bi bi-calendar-check me-2"></i>Asistencias del mes
+    </h6>
+    {% include "core/asistencia/_calendario_estudiante.html" %}
+</div>
+
+<div class="stat-card mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h6 class="mb-0">
+            <i class="bi bi-trophy me-2"></i>Puntaje total bruto
+            {% if materia_sel %}<span class="text-muted fw-normal small">— {{ materia_sel.nombre }}</span>{% endif %}
+        </h6>
+        <span class="badge bg-primary fs-6">Total: {{ score_bruto.total_bruto }}</span>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <span class="badge bg-success" title="Balance de participación en clase (sin bonos)">
+            Participación: {{ balance_total }}
+        </span>
+        {% if total_bonos %}
+        <span class="badge bg-warning text-dark" title="Bonos manuales del maestro">Bono: +{{ total_bonos }}</span>
+        {% endif %}
+        <span class="badge bg-secondary">
+            Cuaderno: {% if prom_escrita %}{{ prom_escrita }}%{% else %}—{% endif %}
+        </span>
+        <span class="badge bg-info text-dark">
+            Comprensión: {% if prom_oral %}{{ prom_oral }}%{% else %}—{% endif %}
+        </span>
+    </div>
+</div>
+
+<div class="stat-card mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <h6 class="mb-0">
+            <i class="bi bi-star-fill me-2" style="color: var(--warning)"></i>
+            {% if materia_sel %}Puntos — {{ materia_sel.nombre }}{% else %}Puntos totales{% endif %}
+        </h6>
+        <a href="{% url 'core:estudiante_detail' estudiante.pk %}" class="btn btn-sm btn-ghost">Ver historial completo</a>
+    </div>
+    <div class="d-flex flex-wrap gap-3 mb-3 align-items-center">
+        <span class="badge bg-success fs-6" title="Participación en clase">+{{ total_positivos }}</span>
+        <span class="badge bg-danger fs-6" title="Participación en clase">−{{ total_negativos }}</span>
+        <span class="badge bg-warning text-dark fs-6" title="Bonos manuales">Bono: +{{ total_bonos }}</span>
+        <span class="fw-bold {% if balance_total > 0 %}text-success{% elif balance_total < 0 %}text-danger{% else %}text-muted{% endif %}"
+              title="Solo participación en clase (sin bonos)">
+            Total neto: {{ balance_total }}
+        </span>
+        {% if total_bonos %}
+        <span class="text-muted small" title="Participación + bonos">
+            (con bonos: {{ part_con_bonos }})
+        </span>
+        {% endif %}
+    </div>
+
+    {% if not materia_sel and puntos_por_materia %}
+    <h6 class="small text-muted text-uppercase mb-2">Por materia</h6>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        {% for row in puntos_por_materia %}
+        <a href="?mes={{ mes }}&anio={{ anio }}&materia={{ row.materia.pk }}"
+           class="p-2 rounded small text-decoration-none"
+           style="background: var(--surface-3); border: 1px solid var(--border); color: inherit;">
+            <strong>{{ row.materia.nombre }}</strong>
+            <span class="text-success ms-1">+{{ row.positivos }}</span>
+            <span class="text-danger ms-1">−{{ row.negativos }}</span>
+            {% if row.bonos %}<span class="text-warning ms-1">+{{ row.bonos }} bono</span>{% endif %}
+            <span class="fw-bold ms-1">= {{ row.balance }}{% if row.bonos %} (+{{ row.bonos }}){% endif %}</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <h6 class="small text-muted text-uppercase mb-2">Últimos registros</h6>
+    {% for p in participaciones_recientes %}
+    <div class="d-flex align-items-center gap-2 py-1 px-2 mb-1 rounded small" style="background: var(--surface-3)">
+        {% if p.tipo == "POSITIVO" %}
+        <span class="badge bg-success">+{{ p.valor }}</span>
+        {% else %}
+        <span class="badge bg-danger">−{{ p.valor }}</span>
+        {% endif %}
+        <span class="badge bg-secondary">{{ p.materia.nombre }}</span>
+        {% if p.origen == "BONO_MANUAL" %}
+        <span class="badge bg-warning text-dark">Bono</span>
+        {% endif %}
+        <span class="flex-grow-1">{{ p.descripcion|default:""|truncatechars:50 }}</span>
+        <span class="text-muted">{{ p.fecha|date:"d/m/Y" }}</span>
+    </div>
+    {% empty %}
+    <p class="text-muted small mb-0">
+        Sin puntos registrados{% if materia_sel %} en {{ materia_sel.nombre }}{% endif %}.
+    </p>
+    {% endfor %}
+</div>
+
+<div class="stat-card mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <h6 class="mb-0">
+            <i class="bi bi-journal-text me-2"></i>Tareas y evaluaciones
+            {% if materia_sel %}<span class="text-muted fw-normal small">— {{ materia_sel.nombre }}</span>{% endif %}
+        </h6>
+        {% if prom_oral or prom_escrita or prom_tareas_pct %}
+        <div class="small text-muted">
+            {% if prom_tareas_pct %}Desempeño tareas:
+            <strong class="text-light">{{ prom_tareas_pct }}%</strong>{% endif %}
+            {% if prom_oral %} · Comprensión:
+            <strong class="text-light">{{ prom_oral }}%</strong>{% endif %}
+            {% if prom_escrita %} · Cuaderno:
+            <strong class="text-light">{{ prom_escrita }}%</strong>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Tarea</th>
+                    <th>Categoría</th>
+                    <th>Entrega</th>
+                    <th>Estado</th>
+                    <th>Puntaje</th>
+                    <th>Comentario</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ev in evaluaciones %}
+                <tr>
+                    <td>
+                        {{ ev.tarea.titulo|default:ev.tarea.descripcion|truncatechars:40 }}
+                        {% if ev.tarea.materia and not materia_sel %}
+                        <span class="badge ms-1" style="background: var(--accent); font-size: .7rem">{{ ev.tarea.materia.nombre }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ev.tarea.modalidad == "ORAL" %}
+                        <span class="badge bg-info text-dark">Comprensión</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Cuaderno</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ ev.tarea.fecha_entrega|date:"d/m/Y" }}</td>
+                    <td>{{ ev.get_estado_display }}</td>
+                    <td>{% if ev.puntaje %}{{ ev.puntaje_etiqueta }}{% else %}—{% endif %}</td>
+                    <td class="small text-muted">
+                        {{ ev.comentario_maestro|default:"—"|truncatechars:30 }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-muted">
+                        Sin tareas{% if materia_sel %} para esta materia{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="stat-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">
+            Observaciones
+            {% if materia_sel %}<span class="text-muted fw-normal small">— {{ materia_sel.nombre }}</span>{% endif %}
+        </h6>
+        {% if observaciones %}
+        <a href="{% url 'core:estudiante_detail' estudiante.pk %}" class="btn btn-sm btn-ghost">Ver todas</a>
+        {% endif %}
+    </div>
+    {% if observaciones %}
+    <ul class="list-unstyled mb-0">
+        {% for o in observaciones %}
+        <li class="mb-3 pb-3 border-bottom border-secondary">
+            <span class="badge bg-secondary me-2">{{ o.get_tipo_display }}</span>
+            {% if o.visible_padre %}
+            <span class="badge bg-info text-dark me-1">Visible padres</span>
+            {% endif %}
+            {% if o.materia %}
+            <span class="badge me-1" style="background: var(--accent)">{{ o.materia.nombre }}</span>
+            {% endif %}
+            <small class="text-muted">{{ o.fecha|date:"d/m/Y H:i" }}</small>
+            <p class="mb-0 mt-1">{{ o.contenido|truncatechars:200 }}</p>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted small mb-0">
+        Sin observaciones{% if materia_sel %} en {{ materia_sel.nombre }}{% endif %}.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

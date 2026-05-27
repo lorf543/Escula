@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Enlace ya usado{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-check2-circle me-2"></i>Enlace ya utilizado</h1>
+</div>
+<div class="stat-card" style="max-width:480px">
+    <p>Este enlace de invitación ya fue usado. Si necesita vincular otro hijo, pida al colegio un <strong>nuevo enlace</strong> para ese estudiante.</p>
+    <a href="{% url 'account_login' %}" class="btn btn-accent mt-2">Iniciar sesión</a>
+</div>
+{% endblock %}

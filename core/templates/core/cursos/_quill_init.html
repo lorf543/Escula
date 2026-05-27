@@ -1,0 +1,49 @@
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<style>
+    #quillEditor .ql-editor { min-height: 140px; color: #e9ecef; }
+    #quillEditor .ql-toolbar.ql-snow,
+    #quillEditor .ql-container.ql-snow { border-color: var(--border, #495057); background: #212529; }
+    #quillEditor .ql-stroke { stroke: #adb5bd; }
+    #quillEditor .ql-fill { fill: #adb5bd; }
+    #quillEditor .ql-picker-label { color: #adb5bd; }
+</style>
+<script>
+(function initQuillPlan() {
+    const hidden = document.getElementById('id_contenido');
+    const mount = document.getElementById('quillEditor');
+    if (!hidden || !mount || mount.dataset.quillReady) return;
+    mount.dataset.quillReady = '1';
+    const quill = new Quill('#quillEditor', {
+        theme: 'snow',
+        placeholder: 'Actividades, secuencia didáctica, evaluación formativa…',
+        modules: {
+            toolbar: [
+                [{ header: [2, 3, false] }],
+                ['bold', 'italic', 'underline'],
+                [{ list: 'ordered' }, { list: 'bullet' }],
+                ['link'],
+                ['clean']
+            ]
+        }
+    });
+    const dataEl = document.getElementById('quill-initial-data');
+    let initial = '';
+    if (dataEl) {
+        try { initial = JSON.parse(dataEl.textContent); } catch (e) { initial = ''; }
+    }
+    if (initial) {
+        quill.root.innerHTML = initial;
+        hidden.value = initial;
+    }
+    quill.on('text-change', function() {
+        hidden.value = quill.root.innerHTML;
+    });
+    const form = document.getElementById('planificacionForm');
+    if (form) {
+        form.addEventListener('submit', function() {
+            hidden.value = quill.root.innerHTML;
+        });
+    }
+})();
+</script>

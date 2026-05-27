@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Mis hijos{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-people me-2"></i>Mis hijos</h1>
+</div>
+{% if hijos %}
+<div class="row g-3">
+    {% for h in hijos %}
+    <div class="col-md-6 col-lg-4">
+        <div class="stat-card h-100">
+            <h5 class="mb-1">{{ h.apellido }}, {{ h.nombre }}</h5>
+            <p class="text-muted small mb-3">{{ h.get_grado_display }} — Sección {{ h.seccion|default:"—" }}</p>
+            <a href="{% url 'accounts:padre_curriculum' h.pk %}" class="btn btn-accent btn-sm">
+                <i class="bi bi-journal-richtext me-1"></i>Ver currículum
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<p class="text-muted small mt-4">
+    Para vincular otro hijo, use el enlace que le envíe el colegio y elija «Vincular otro hijo» desde su correo o guarde el enlace e inicie sesión antes de abrirlo.
+</p>
+{% else %}
+<div class="empty-state">
+    <p>No hay estudiantes vinculados aún. Use el enlace de invitación del colegio.</p>
+</div>
+{% endif %}
+{% endblock %}

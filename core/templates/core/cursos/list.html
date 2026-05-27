@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Cursos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-collection-fill me-2"></i>Cursos</h1>
+    <div class="d-flex flex-wrap gap-2">
+        <form method="post" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="sincronizar">
+            <button type="submit" class="btn btn-ghost" title="Crea cursos desde grado y sección de estudiantes">
+                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar desde estudiantes
+            </button>
+        </form>
+        <button type="button"
+                class="btn btn-accent"
+                hx-get="{% url 'core:curso_create' %}"
+                hx-target="#formModalContent"
+                hx-swap="innerHTML">
+            <i class="bi bi-plus-lg me-1"></i>Nuevo curso
+        </button>
+    </div>
+</div>
+
+<p class="text-muted small mb-3">
+    Año escolar dominicano (agosto–julio). Actual: <strong>{{ anio_actual }}</strong>.
+    Las notas, planificaciones y evaluaciones P1/P2 se organizan por curso (grado + sección).
+</p>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-success py-2">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<form method="get" class="mb-4 d-flex align-items-center gap-2 flex-wrap">
+    <label class="form-label mb-0 text-muted small">Año escolar</label>
+    <select name="anio" class="form-select form-select-sm bg-dark text-light border-secondary" style="width:auto" onchange="this.form.submit()">
+        {% for a in anios %}
+        <option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+    </select>
+</form>
+
+<div class="row g-3"
+     hx-trigger="cursoChanged from:body"
+     hx-get="{% url 'core:curso_list' %}?anio={{ anio }}"
+     hx-select=".row.g-3"
+     hx-target="this"
+     hx-swap="outerHTML">
+    {% for curso in cursos %}
+    <div class="col-md-6 col-lg-4">
+        <a href="{% url 'core:curso_detail' curso.pk %}" class="text-decoration-none">
+            <div class="stat-card h-100">
+                <h5 class="mb-1 text-light">{{ curso.nombre_corto }}</h5>
+                <p class="text-muted small mb-2">{{ curso.anio_escolar }}</p>
+                <span class="badge bg-secondary">
+                    <i class="bi bi-people me-1"></i>{{ curso.total_estudiantes }} estudiante{{ curso.total_estudiantes|pluralize }}
+                </span>
+            </div>
+        </a>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="stat-card text-center text-muted py-5">
+            <i class="bi bi-inbox display-4 d-block mb-3"></i>
+            No hay cursos para {{ anio }}.
+            <br><span class="small">Use «Sincronizar desde estudiantes» o cree uno manualmente.</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

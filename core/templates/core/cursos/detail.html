@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ curso.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{% url 'core:curso_list' %}?anio={{ curso.anio_escolar }}" class="text-muted text-decoration-none small">
+            <i class="bi bi-arrow-left me-1"></i>Cursos
+        </a>
+        <h1 class="mt-1"><i class="bi bi-collection-fill me-2"></i>{{ curso.nombre_completo }}</h1>
+        <p class="text-muted mb-0 small">{{ total_estudiantes }} estudiante{{ total_estudiantes|pluralize }} · República Dominicana · MINERD</p>
+    </div>
+    <a href="{% url 'core:curso_curriculum' curso.pk %}" class="btn btn-accent btn-sm">
+        <i class="bi bi-people me-1"></i>Currículum del curso
+    </a>
+</div>
+
+<ul class="nav nav-tabs mb-4 border-secondary">
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'notas' %}active{% endif %}"
+           href="?tab=notas">Notas del curso</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'planificacion' %}active{% endif %}"
+           href="?tab=planificacion">Planificación</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'p1p2' %}active{% endif %}"
+           href="?tab=p1p2">P1 / P2</a>
+    </li>
+</ul>
+
+{% if tab == 'notas' %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0"><i class="bi bi-journal-text me-2"></i>Observaciones generales</h5>
+    <button type="button" class="btn btn-accent btn-sm"
+            hx-get="{% url 'core:nota_curso_create' curso.pk %}"
+            hx-target="#formModalContent" hx-swap="innerHTML">
+        <i class="bi bi-plus-lg me-1"></i>Nueva nota
+    </button>
+</div>
+<div id="notas-curso-list"
+     hx-trigger="cursoNotaChanged from:body"
+     hx-get="{% url 'core:curso_detail' curso.pk %}?tab=notas"
+     hx-target="this" hx-select="#notas-curso-list" hx-swap="outerHTML">
+    {% include "core/cursos/_notas_list.html" %}
+</div>
+
+{% elif tab == 'planificacion' %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Planificación docente</h5>
+    <div class="d-flex gap-2">
+        <a href="?tab=planificacion&tipo_plan=DIARIA" class="btn btn-sm {% if tipo_plan == 'DIARIA' %}btn-accent{% else %}btn-ghost{% endif %}">Diaria</a>
+        <a href="?tab=planificacion&tipo_plan=GENERAL" class="btn btn-sm {% if tipo_plan == 'GENERAL' %}btn-accent{% else %}btn-ghost{% endif %}">General</a>
+        <a href="?tab=planificacion" class="btn btn-sm btn-ghost">Todas</a>
+        <button type="button" class="btn btn-accent btn-sm"
+                hx-get="{% url 'core:planificacion_create' curso.pk %}?tipo=DIARIA"
+                hx-target="#formModalContent" hx-swap="innerHTML">
+            <i class="bi bi-plus-lg"></i> Diaria
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm"
+                hx-get="{% url 'core:planificacion_create' curso.pk %}?tipo=GENERAL"
+                hx-target="#formModalContent" hx-swap="innerHTML">
+            <i class="bi bi-plus-lg"></i> General
+        </button>
+    </div>
+</div>
+<div id="plan-list"
+     hx-trigger="cursoPlanChanged from:body"
+     hx-get="{% url 'core:curso_detail' curso.pk %}?tab=planificacion{% if tipo_plan %}&tipo_plan={{ tipo_plan }}{% endif %}"
+     hx-target="this" hx-select="#plan-list" hx-swap="outerHTML">
+    {% include "core/cursos/_planificacion_list.html" %}
+</div>
+
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-1"><i class="bi bi-clipboard-data me-2"></i>Evaluación diagnóstica y progreso</h5>
+        <p class="text-muted small mb-0">
+            <strong>P1</strong>: línea base inicial (texto o imagen). <strong>P2</strong>: registros de avance vinculados al P1.
+        </p>
+    </div>
+    <button type="button" class="btn btn-accent btn-sm"
+            hx-get="{% url 'core:evaluacion_p1_create' curso.pk %}"
+            hx-target="#formModalContent" hx-swap="innerHTML">
+        <i class="bi bi-plus-lg me-1"></i>Nueva P1
+    </button>
+</div>
+<div id="p1-list"
+     hx-trigger="cursoP1Changed from:body"
+     hx-get="{% url 'core:curso_detail' curso.pk %}?tab=p1p2"
+     hx-target="this" hx-select="#p1-list" hx-swap="outerHTML">
+    {% include "core/cursos/_p1_list.html" %}
+</div>
+{% endif %}
+{% endblock %}

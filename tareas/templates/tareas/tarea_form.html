@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-journal-plus me-2"></i>{{ title }}</h1>
+    <a href="{% url 'tareas:tarea_list' %}" class="btn btn-ghost">Volver</a>
+</div>
+<div class="stat-card" style="max-width:800px">
+    <form method="post" id="tareaForm">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+        {% endif %}
+        {% if grupo_formset.non_form_errors %}
+        <div class="alert alert-danger py-2">{{ grupo_formset.non_form_errors }}</div>
+        {% endif %}
+        {% if 'creada_por' in form.fields %}
+        <div class="mb-3 border-bottom border-secondary pb-3">
+            <label class="form-label" for="{{ form.creada_por.id_for_label }}">{{ form.creada_por.label }}</label>
+            {{ form.creada_por }}
+        </div>
+        {% endif %}
+        <div class="mb-3">
+            <label class="form-label" for="{{ form.titulo.id_for_label }}">{{ form.titulo.label }}</label>
+            {{ form.titulo }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="{{ form.materia.id_for_label }}">{{ form.materia.label }}</label>
+            {{ form.materia }}
+            {% if form.materia.errors %}<div class="text-danger small">{{ form.materia.errors }}</div>{% endif %}
+            <p class="text-muted small mb-0">La tarea quedará asociada a esta materia en currículums y reportes.</p>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="{{ form.descripcion.id_for_label }}">{{ form.descripcion.label }}</label>
+            {{ form.descripcion }}
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">{{ form.modalidad.label }}</label>
+                {{ form.modalidad }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ form.fecha_entrega.label }}</label>
+                {{ form.fecha_entrega }}
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label d-block">{{ form.tipo_asignacion.label }}</label>
+            {% for choice in form.tipo_asignacion %}
+            <div class="form-check form-check-inline">
+                {{ choice.tag }}
+                <label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="panelGrados" class="mb-3">
+            <label class="form-label">{{ form.grados_asignados.label }}</label>
+            <div class="d-flex flex-wrap gap-2 p-2 rounded" style="background:var(--surface-3);border:1px solid var(--border)">
+                {% for choice in form.grados_asignados %}
+                <div class="form-check">
+                    {{ choice.tag }}
+                    <label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div id="panelGrupos" class="mb-3 d-none">
+            <p class="text-muted small">Los grupos son temporales y pertenecen solo a esta tarea. Cursos del año {{ anio }}.</p>
+            {{ grupo_formset.management_form }}
+            <div id="gruposContainer">
+                {% for gform in grupo_formset %}
+                <div class="grupo-form-row p-3 mb-3 rounded border border-secondary" data-prefix="{{ gform.prefix }}">
+                    {% if gform.non_field_errors %}
+                    <div class="text-danger small mb-2">{{ gform.non_field_errors }}</div>
+                    {% endif %}
+                    {{ gform.grupo_id }}
+                    {{ gform.DELETE }}
+                    <div class="mb-2">
+                        <label class="form-label">Nombre del grupo</label>
+                        {{ gform.nombre }}
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Cursos</label>
+                        <div class="d-flex flex-wrap gap-2 grupo-cursos-panel" id="cursos-{{ gform.prefix }}">
+                            {% for choice in gform.cursos %}
+                            <div class="form-check">
+                                {{ choice.tag }}
+                                <label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Integrantes</label>
+                        <div class="grupo-miembros-panel"
+                             id="miembros-{{ gform.prefix }}"
+                             hx-get="{% url 'tareas:grupo_miembros_partial' %}"
+                             hx-trigger="change from:#cursos-{{ gform.prefix }}"
+                             hx-include="#cursos-{{ gform.prefix }}"
+                             hx-vals='{"prefix": "{{ gform.prefix }}"}'
+                             hx-target="#miembros-{{ gform.prefix }}"
+                             hx-swap="innerHTML">
+                            {% if gform.miembros.field.queryset %}
+                            {% include "tareas/_miembros_checkboxes.html" with estudiantes=gform.miembros.field.queryset selected=gform.miembros.initial field_prefix=gform.prefix %}
+                            {% else %}
+                            <p class="text-muted small mb-0">Seleccione cursos para ver integrantes.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-sm btn-ghost" id="addGrupoBtn">
+                <i class="bi bi-plus-lg me-1"></i>Añadir otro grupo
+            </button>
+        </div>
+        <button type="submit" class="btn btn-accent">Guardar</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    function togglePanels() {
+        var tipo = document.querySelector('input[name="tipo_asignacion"]:checked');
+        var grados = document.getElementById('panelGrados');
+        var grupos = document.getElementById('panelGrupos');
+        if (!tipo || !grados || !grupos) return;
+        if (tipo.value === 'GRUPOS') {
+            grados.classList.add('d-none');
+            grupos.classList.remove('d-none');
+        } else {
+            grados.classList.remove('d-none');
+            grupos.classList.add('d-none');
+        }
+    }
+    document.querySelectorAll('input[name="tipo_asignacion"]').forEach(function (r) {
+        r.addEventListener('change', togglePanels);
+    });
+    togglePanels();
+
+    document.querySelectorAll('.grupo-cursos-panel').forEach(function (panel) {
+        panel.querySelectorAll('input[type=checkbox]').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                var row = panel.closest('.grupo-form-row');
+                if (row && typeof htmx !== 'undefined') {
+                    var target = row.querySelector('.grupo-miembros-panel');
+                    if (target) htmx.trigger(target, 'change');
+                }
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}
